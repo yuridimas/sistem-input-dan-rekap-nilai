@@ -12,6 +12,7 @@ from app.models.user import User
 from app.repositories import component as repo
 from app.schemas.component import ComponentCreate, ComponentUpdate, ComponentWrite
 from app.services.class_ import get_class
+from app.services import grade as grade_service
 
 
 def validate_configuration(components: list[ComponentCreate]) -> None:
@@ -40,11 +41,12 @@ async def create_components(
 ) -> list[Component]:
     await repo.lock_class(db, class_id)
     await get_class(db, class_id, user)
+    await grade_service.ensure_components_mutable(db, class_id)
     existing = await repo.list_by_class(db, class_id)
     validate_configuration([_configuration(row) for row in existing] + payload)
     rows = [Component(class_id=class_id, **item.model_dump()) for item in payload]
     repo.add_all(db, rows)
-    await _commit(db)
+    await _commit(db, class_id)
     for row in rows:
         await db.refresh(row)
     return rows
@@ -56,6 +58,7 @@ async def _get_component(db: AsyncSession, component_id: uuid.UUID, user: User) 
         raise HTTPException(404, "Komponen penilaian tidak ditemukan")
     await repo.lock_class(db, component.class_id)
     await get_class(db, component.class_id, user)
+    await grade_service.ensure_components_mutable(db, component.class_id)
     # A set replacement may have deleted this component before the lock was acquired.
     component = await repo.get_by_id(db, component_id)
     if component is None:
@@ -69,12 +72,14 @@ async def update_component(
     component = await _get_component(db, component_id, user)
     changes = payload.model_dump(exclude_unset=True)
     rows = await repo.list_by_class(db, component.class_id)
-    validate_configuration([
-        _configuration(row, changes if row.id == component_id else None) for row in rows
-    ])
+    projected = {row.id: _configuration(row, changes if row.id == component_id else None) for row in rows}
+    validate_configuration(list(projected.values()))
+    await grade_service.validate_score_compatibility(
+        db, component.class_id, {key: row.max_score for key, row in projected.items()},
+    )
     for key, value in changes.items():
         setattr(component, key, value)
-    await _commit(db)
+    await _commit(db, component.class_id)
     await db.refresh(component)
     return component
 
@@ -84,7 +89,7 @@ async def delete_component(db: AsyncSession, component_id: uuid.UUID, user: User
     rows = await repo.list_by_class(db, component.class_id)
     validate_configuration([_configuration(row) for row in rows if row.id != component_id])
     await repo.delete(db, component)
-    await _commit(db)
+    await _commit(db, component.class_id)
 
 
 async def replace_components(
@@ -92,6 +97,7 @@ async def replace_components(
 ) -> list[Component]:
     await repo.lock_class(db, class_id)
     await get_class(db, class_id, user)
+    await grade_service.ensure_components_mutable(db, class_id)
     existing = {row.id: row for row in await repo.list_by_class(db, class_id)}
     supplied_ids = [row.id for row in payload if row.id is not None]
     if len(set(supplied_ids)) != len(supplied_ids):
@@ -99,6 +105,9 @@ async def replace_components(
     if not set(supplied_ids).issubset(existing):
         raise HTTPException(422, "Komponen tidak ditemukan pada kelas ini")
     validate_configuration(payload)
+    await grade_service.validate_score_compatibility(
+        db, class_id, {row.id: row.max_score for row in payload if row.id is not None},
+    )
 
     # Validate the entire request before mutating tracked rows.
     for row_id, row in existing.items():
@@ -111,12 +120,13 @@ async def replace_components(
         else:
             for key, value in values.items():
                 setattr(existing[item.id], key, value)
-    await _commit(db)
+    await _commit(db, class_id)
     return await repo.list_by_class(db, class_id)
 
 
-async def _commit(db: AsyncSession) -> None:
+async def _commit(db: AsyncSession, class_id: uuid.UUID) -> None:
     try:
+        await grade_service.recalculate_class_drafts(db, class_id)
         await db.commit()
     except IntegrityError:
         await db.rollback()

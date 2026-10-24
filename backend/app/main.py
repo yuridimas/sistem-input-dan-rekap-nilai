@@ -15,6 +15,8 @@ from app.routers.classes import router as classes_router
 from app.routers.components import router as components_router
 from app.routers.courses import router as courses_router
 from app.routers.health import router as health_router
+from app.routers.grades import router as grades_router
+from app.routers.scores import router as scores_router
 from app.routers.students import router as students_router
 from app.routers.users import router as users_router
 from app.services.auth import limiter
@@ -57,3 +59,5 @@ app.include_router(courses_router)
 app.include_router(students_router)
 app.include_router(classes_router)
 app.include_router(components_router)
+app.include_router(grades_router)
+app.include_router(scores_router)

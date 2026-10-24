@@ -7,7 +7,7 @@ Plan: [Sistem Input & Rekap Nilai](2026-10-24-sistem-input-rekap-nilai.md)
 - Tasks 1–8 already have implementation commits. On resumption, the existing Task 8 edits were retained: only superadmins may update/delete shared student records; enrollment operations retain class IDs across rollback and map dependent deletion conflicts to 409.
 - Task 8 integration tests now cover the retained student authorization policy.
 - Task 9 implements components across model, migration, schema, repository, service, and router layers.
-- Next task: **Task 10 — Score entry + auto final score (draft)**. Tasks 10–23 remain pending.
+- Task 10 is now implemented; see [score entry progress](2026-10-24-scores-progress.md). Next task: **Task 11 — Finalize + ranking**. Tasks 11–23 remain pending.
 
 ## Component API Contract
 
