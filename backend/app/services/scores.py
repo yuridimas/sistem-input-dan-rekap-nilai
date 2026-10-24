@@ -14,7 +14,7 @@ from app.repositories import grades as grade_repo
 from app.repositories import scores as score_repo
 from app.schemas.component import ComponentCreate
 from app.services.class_ import get_class
-from app.services.component import validate_configuration
+from app.services.component_rules import validate_configuration
 from app.services.grade import calculate_final_score
 
 

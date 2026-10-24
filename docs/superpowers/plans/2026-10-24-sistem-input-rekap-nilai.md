@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-**Resume status (2026-10-24):** Tasks 1–8 have implementation commits; Tasks 9–10 are implemented and verified. See [component progress and API decisions](2026-10-24-components-progress.md) and [score entry progress](2026-10-24-scores-progress.md). Resume with **Task 11**. Original step checkboxes below are retained as the execution template.
+**Resume status (2026-10-25):** Tasks 1–8 have implementation commits; Tasks 9–11 are implemented and verified. See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), and [finalization progress](2026-10-25-finalization-progress.md). Resume with **Task 12**. Original step checkboxes below are retained as the execution template.
 
 - Version floors: Python 3.11+, Node 20+, PostgreSQL 18, latest major for all libraries — verify installed versions before execution and pin exact majors in lockfiles.
 - Mono repo layout: `backend/` (FastAPI) and `frontend/` (React). All backend paths are under `backend/`, all frontend under `frontend/`.

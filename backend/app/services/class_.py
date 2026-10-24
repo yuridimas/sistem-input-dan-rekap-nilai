@@ -12,7 +12,9 @@ from app.models.student import Student
 from app.models.user import User, UserRole
 from app.repositories import class_ as class_repo
 from app.repositories import course as course_repo
+from app.repositories import component as component_repo
 from app.repositories import enrollment as enrollment_repo
+from app.repositories import grades as grade_repo
 from app.repositories import student as student_repo
 from app.repositories import user as user_repo
 from app.schemas.class_ import ClassCreate, ClassUpdate, EnrollmentCreate
@@ -189,38 +191,21 @@ async def enroll_student(
     payload: EnrollmentCreate,
     current_user: User,
 ) -> tuple[Enrollment, Student]:
-    class_ = await get_class(db, class_id, current_user)
+    class_ = await _lock_mutable_roster(db, class_id, current_user)
+    class_pk = class_.id
 
-    student = await student_repo.get_by_nim(db, payload.nim)
-    if student is not None:
-        existing = await enrollment_repo.get_by_class_and_student(
-            db, class_.id, student.id
-        )
-        if existing is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Mahasiswa sudah terdaftar di kelas ini",
-            )
-    else:
-        student = Student(
+    try:
+        student = await student_repo.get_or_create_for_enrollment(db, Student(
             nim=payload.nim,
             full_name=payload.full_name or payload.nim,
             email=payload.email,
-        )
-        try:
-            student = await student_repo.add(db, student)
-        except IntegrityError:
-            await db.rollback()
-            student = await student_repo.get_by_nim(db, payload.nim)
-            if student is None:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="NIM sudah terdaftar",
-                )
-
-    enrollment = Enrollment(class_id=class_.id, student_id=student.id)
-    try:
+        ))
+        existing = await enrollment_repo.get_by_class_and_student(db, class_pk, student.id)
+        if existing is not None:
+            raise HTTPException(409, "Mahasiswa sudah terdaftar di kelas ini")
+        enrollment = Enrollment(class_id=class_pk, student_id=student.id)
         enrollment = await enrollment_repo.add(db, enrollment)
+        await db.commit()
     except IntegrityError:
         await db.rollback()
         raise HTTPException(
@@ -245,11 +230,28 @@ async def delete_enrollment(
     enrollment_id: uuid.UUID,
     current_user: User,
 ) -> None:
-    class_ = await get_class(db, class_id, current_user)
+    class_ = await _lock_mutable_roster(db, class_id, current_user)
+    class_pk = class_.id
     enrollment = await enrollment_repo.get_by_id(db, enrollment_id)
-    if enrollment is None or enrollment.class_id != class_.id:
+    if enrollment is None or enrollment.class_id != class_pk:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Pendaftaran tidak ditemukan pada kelas ini",
         )
-    await enrollment_repo.delete(db, enrollment)
+    try:
+        await enrollment_repo.delete(db, enrollment)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Pendaftaran masih memiliki nilai dan tidak dapat dihapus",
+        )
+
+
+async def _lock_mutable_roster(db: AsyncSession, class_id: uuid.UUID, user: User) -> Class:
+    await component_repo.lock_class(db, class_id)
+    class_ = await get_class(db, class_id, user)
+    if await grade_repo.has_finalized_class(db, class_id):
+        raise HTTPException(409, "Daftar mahasiswa kelas yang sudah difinalisasi tidak dapat diubah")
+    return class_

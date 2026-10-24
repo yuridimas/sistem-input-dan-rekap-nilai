@@ -1,7 +1,6 @@
 """Validate complete component configurations before persisting changes."""
 
 import uuid
-from decimal import Decimal
 
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
@@ -13,14 +12,7 @@ from app.repositories import component as repo
 from app.schemas.component import ComponentCreate, ComponentUpdate, ComponentWrite
 from app.services.class_ import get_class
 from app.services import grade as grade_service
-
-
-def validate_configuration(components: list[ComponentCreate]) -> None:
-    if sum((component.weight for component in components), Decimal("0")) != Decimal("100"):
-        raise HTTPException(422, "Jumlah bobot komponen harus tepat 100%")
-    categories = {component.category for component in components}
-    if not {"uts", "uas"}.issubset(categories):
-        raise HTTPException(422, "Komponen wajib mencakup minimal satu UTS dan satu UAS")
+from app.services.component_rules import validate_configuration
 
 
 def _configuration(component: Component, changes: dict | None = None) -> ComponentCreate:

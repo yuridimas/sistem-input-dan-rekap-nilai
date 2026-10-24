@@ -3,11 +3,19 @@
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enrollment import Enrollment
-from app.models.grade import Grade
+from app.models.grade import Grade, GradeStatus
+
+
+async def has_finalized_class(db: AsyncSession, class_id: uuid.UUID) -> bool:
+    return bool(await db.scalar(select(exists().where(
+        Grade.enrollment_id == Enrollment.id,
+        Enrollment.class_id == class_id,
+        Grade.status == GradeStatus.FINALIZED,
+    ))))
 
 
 async def get_by_enrollment(db: AsyncSession, enrollment_id: uuid.UUID) -> Grade | None:

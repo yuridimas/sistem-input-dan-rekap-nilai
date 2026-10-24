@@ -1,4 +1,4 @@
-"""Database access for enrollments."""
+"""Database access for enrollments; the calling service owns the transaction."""
 
 import uuid
 
@@ -45,11 +45,10 @@ async def list_by_class(
 
 async def add(db: AsyncSession, enrollment: Enrollment) -> Enrollment:
     db.add(enrollment)
-    await db.commit()
-    await db.refresh(enrollment)
+    await db.flush()
     return enrollment
 
 
 async def delete(db: AsyncSession, enrollment: Enrollment) -> None:
     await db.delete(enrollment)
-    await db.commit()
+    await db.flush()

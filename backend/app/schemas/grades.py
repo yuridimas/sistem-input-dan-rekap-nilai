@@ -35,3 +35,15 @@ class ClassGradesRead(BaseModel):
     class_id: uuid.UUID
     components: list[ComponentRead]
     grades: list[GradeRowRead]
+
+
+class FinalizeRead(BaseModel):
+    finalized_count: int
+    notified: int
+
+
+class RankingRead(BaseModel):
+    rank: int
+    enrollment_id: uuid.UUID
+    student: StudentRead
+    final_score: Decimal
