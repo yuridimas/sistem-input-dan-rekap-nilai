@@ -7,7 +7,10 @@ class Base(DeclarativeBase):
     """Base class for all ORM models."""
 
 
+from app.models.class_ import Class  # noqa: E402
 from app.models.course import Course  # noqa: E402
+from app.models.enrollment import Enrollment  # noqa: E402
+from app.models.student import Student  # noqa: E402
 from app.models.user import User  # noqa: E402
 
-__all__ = ["Base", "Course", "User"]
+__all__ = ["Base", "Class", "Course", "Enrollment", "Student", "User"]
