@@ -9,6 +9,7 @@ from alembic import context
 
 from app.config import get_settings
 from app.models import Base
+import app.models.course  # noqa: F401
 import app.models.user  # noqa: F401
 
 config = context.config

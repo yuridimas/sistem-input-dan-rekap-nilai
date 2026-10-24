@@ -11,6 +11,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import get_settings
 from app.database import AsyncSessionLocal
 from app.routers.auth import router as auth_router
+from app.routers.courses import router as courses_router
 from app.routers.health import router as health_router
 from app.routers.users import router as users_router
 from app.services.auth import limiter
@@ -49,3 +50,4 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(courses_router)
