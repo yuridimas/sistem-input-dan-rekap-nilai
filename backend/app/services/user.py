@@ -3,6 +3,7 @@
 import uuid
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -25,7 +26,14 @@ async def create_user(db: AsyncSession, payload: UserCreate) -> User:
         role=payload.role,
         is_active=True,
     )
-    return await user_repo.add(db, user)
+    try:
+        return await user_repo.add(db, user)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email sudah terdaftar",
+        )
 
 
 async def get_user(db: AsyncSession, user_id: uuid.UUID) -> User:
@@ -67,7 +75,14 @@ async def update_user(db: AsyncSession, user_id: uuid.UUID, payload: UserUpdate)
     if payload.password is not None:
         user.password_hash = hash_password(payload.password)
 
-    return await user_repo.save(db, user)
+    try:
+        return await user_repo.save(db, user)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email sudah terdaftar",
+        )
 
 
 async def deactivate_user(db: AsyncSession, user_id: uuid.UUID) -> None:

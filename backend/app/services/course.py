@@ -3,6 +3,7 @@
 import uuid
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.course import Course
@@ -33,7 +34,7 @@ async def create_course(
         semester=payload.semester,
         created_by=current_user.id,
     )
-    return await course_repo.add(db, course)
+    return await _add_or_conflict(db, course)
 
 
 async def list_courses(db: AsyncSession, current_user: User) -> list[Course]:
@@ -84,7 +85,14 @@ async def update_course(
     if payload.semester is not None:
         course.semester = payload.semester
 
-    return await course_repo.save(db, course)
+    try:
+        return await course_repo.save(db, course)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Kode mata kuliah sudah terdaftar",
+        )
 
 
 async def delete_course(
@@ -93,4 +101,22 @@ async def delete_course(
     current_user: User,
 ) -> None:
     course = await get_course(db, course_id, current_user)
-    await course_repo.delete(db, course)
+    try:
+        await course_repo.delete(db, course)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Mata kuliah masih memiliki kelas dan tidak dapat dihapus",
+        )
+
+
+async def _add_or_conflict(db: AsyncSession, course: Course) -> Course:
+    try:
+        return await course_repo.add(db, course)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Kode mata kuliah sudah terdaftar",
+        )
