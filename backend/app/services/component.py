@@ -1,0 +1,123 @@
+"""Validate complete component configurations before persisting changes."""
+
+import uuid
+from decimal import Decimal
+
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.component import Component
+from app.models.user import User
+from app.repositories import component as repo
+from app.schemas.component import ComponentCreate, ComponentUpdate, ComponentWrite
+from app.services.class_ import get_class
+
+
+def validate_configuration(components: list[ComponentCreate]) -> None:
+    if sum((component.weight for component in components), Decimal("0")) != Decimal("100"):
+        raise HTTPException(422, "Jumlah bobot komponen harus tepat 100%")
+    categories = {component.category for component in components}
+    if not {"uts", "uas"}.issubset(categories):
+        raise HTTPException(422, "Komponen wajib mencakup minimal satu UTS dan satu UAS")
+
+
+def _configuration(component: Component, changes: dict | None = None) -> ComponentCreate:
+    return ComponentCreate.model_validate({
+        "name": component.name, "category": component.category, "weight": component.weight,
+        "max_score": component.max_score, "order_index": component.order_index,
+        **(changes or {}),
+    })
+
+
+async def list_components(db: AsyncSession, class_id: uuid.UUID, user: User) -> list[Component]:
+    await get_class(db, class_id, user)
+    return await repo.list_by_class(db, class_id)
+
+
+async def create_components(
+    db: AsyncSession, class_id: uuid.UUID, payload: list[ComponentCreate], user: User,
+) -> list[Component]:
+    await repo.lock_class(db, class_id)
+    await get_class(db, class_id, user)
+    existing = await repo.list_by_class(db, class_id)
+    validate_configuration([_configuration(row) for row in existing] + payload)
+    rows = [Component(class_id=class_id, **item.model_dump()) for item in payload]
+    repo.add_all(db, rows)
+    await _commit(db)
+    for row in rows:
+        await db.refresh(row)
+    return rows
+
+
+async def _get_component(db: AsyncSession, component_id: uuid.UUID, user: User) -> Component:
+    component = await repo.get_by_id(db, component_id)
+    if component is None:
+        raise HTTPException(404, "Komponen penilaian tidak ditemukan")
+    await repo.lock_class(db, component.class_id)
+    await get_class(db, component.class_id, user)
+    # A set replacement may have deleted this component before the lock was acquired.
+    component = await repo.get_by_id(db, component_id)
+    if component is None:
+        raise HTTPException(404, "Komponen penilaian tidak ditemukan")
+    return component
+
+
+async def update_component(
+    db: AsyncSession, component_id: uuid.UUID, payload: ComponentUpdate, user: User,
+) -> Component:
+    component = await _get_component(db, component_id, user)
+    changes = payload.model_dump(exclude_unset=True)
+    rows = await repo.list_by_class(db, component.class_id)
+    validate_configuration([
+        _configuration(row, changes if row.id == component_id else None) for row in rows
+    ])
+    for key, value in changes.items():
+        setattr(component, key, value)
+    await _commit(db)
+    await db.refresh(component)
+    return component
+
+
+async def delete_component(db: AsyncSession, component_id: uuid.UUID, user: User) -> None:
+    component = await _get_component(db, component_id, user)
+    rows = await repo.list_by_class(db, component.class_id)
+    validate_configuration([_configuration(row) for row in rows if row.id != component_id])
+    await repo.delete(db, component)
+    await _commit(db)
+
+
+async def replace_components(
+    db: AsyncSession, class_id: uuid.UUID, payload: list[ComponentWrite], user: User,
+) -> list[Component]:
+    await repo.lock_class(db, class_id)
+    await get_class(db, class_id, user)
+    existing = {row.id: row for row in await repo.list_by_class(db, class_id)}
+    supplied_ids = [row.id for row in payload if row.id is not None]
+    if len(set(supplied_ids)) != len(supplied_ids):
+        raise HTTPException(422, "ID komponen tidak boleh berulang")
+    if not set(supplied_ids).issubset(existing):
+        raise HTTPException(422, "Komponen tidak ditemukan pada kelas ini")
+    validate_configuration(payload)
+
+    # Validate the entire request before mutating tracked rows.
+    for row_id, row in existing.items():
+        if row_id not in supplied_ids:
+            await repo.delete(db, row)
+    for item in payload:
+        values = item.model_dump(exclude={"id"})
+        if item.id is None:
+            repo.add_all(db, [Component(class_id=class_id, **values)])
+        else:
+            for key, value in values.items():
+                setattr(existing[item.id], key, value)
+    await _commit(db)
+    return await repo.list_by_class(db, class_id)
+
+
+async def _commit(db: AsyncSession) -> None:
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(409, "Komponen masih digunakan atau data kelas telah berubah")

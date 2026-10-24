@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.database import AsyncSessionLocal
 from app.routers.auth import router as auth_router
 from app.routers.classes import router as classes_router
+from app.routers.components import router as components_router
 from app.routers.courses import router as courses_router
 from app.routers.health import router as health_router
 from app.routers.students import router as students_router
@@ -55,3 +56,4 @@ app.include_router(users_router)
 app.include_router(courses_router)
 app.include_router(students_router)
 app.include_router(classes_router)
+app.include_router(components_router)

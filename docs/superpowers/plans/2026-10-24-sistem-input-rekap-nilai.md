@@ -12,6 +12,8 @@
 
 ## Global Constraints
 
+**Resume status (2026-10-24):** Tasks 1–8 have implementation commits; Task 9 is implemented and verified. See [component progress and API decisions](2026-10-24-components-progress.md). Resume with **Task 10**. Original step checkboxes below are retained as the execution template.
+
 - Version floors: Python 3.11+, Node 20+, PostgreSQL 18, latest major for all libraries — verify installed versions before execution and pin exact majors in lockfiles.
 - Mono repo layout: `backend/` (FastAPI) and `frontend/` (React). All backend paths are under `backend/`, all frontend under `frontend/`.
 - Every DB table and column MUST have a Bahasa Indonesia `COMMENT` (SQLAlchemy `comment=`, Alembic `COMMENT ON`).
