@@ -15,7 +15,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
-
+    superadmin_email: str = "admin@example.com"
+    superadmin_password: str = ""
+    superadmin_name: str = "Superadmin"
 
 @lru_cache
 def get_settings() -> Settings:
