@@ -15,4 +15,4 @@ Plan: [Sistem Input & Rekap Nilai](2026-10-24-sistem-input-rekap-nilai.md), Task
 - `npm run build` passed.
 - `rtk bypass npm run lint` passed with one existing `react(only-export-components)` warning in `src/components/ui/button.tsx`.
 - Real-browser smoke passed for invalid login, superadmin and lecturer menus, deep-link login redirect, mobile navigation and keyboard focus, logout, protected routes, and access-token refresh rotation. Refresh rotation was verified in a full smoke run after the one-minute access token expired.
-- No backend files were changed for this task. Next: **Task 17 ? Dashboard**.
+- No backend files were changed for this task. Task 17 is implemented; see [dashboard progress](2026-10-25-dashboard-progress.md). Next: **Task 18: Courses/Classes/Students/Components management UI**.

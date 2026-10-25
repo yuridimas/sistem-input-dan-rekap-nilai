@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-**Resume status (2026-10-25):** Tasks 1–16 are implemented. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), and [Excel progress](2026-10-25-excel-progress.md), [auth and layout progress](2026-10-25-auth-layout-progress.md). Resume with **Task 17**. Original step checkboxes below are retained as the execution template.
+**Resume status (2026-10-25):** Tasks 1–17 are implemented. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), [Excel progress](2026-10-25-excel-progress.md), [auth and layout progress](2026-10-25-auth-layout-progress.md), and [dashboard progress](2026-10-25-dashboard-progress.md). Resume with **Task 18**. Original step checkboxes below are retained as the execution template.
 
 - Version floors: Python 3.11+, Node 20+, PostgreSQL 18, latest major for all libraries — verify installed versions before execution and pin exact majors in lockfiles.
 - Mono repo layout: `backend/` (FastAPI) and `frontend/` (React). All backend paths are under `backend/`, all frontend under `frontend/`.
@@ -367,10 +367,10 @@ async def test_health_ok():
 **Interfaces:**
 - `GET /dashboard/summary` backend endpoint (add to a new `dashboard` router) returning courses taught, class count, pending (draft) classes, recently released. Frontend renders summary cards + drill-down links.
 
-- [ ] **Step 1: Backend** — add `dashboard` router + service; test summary counts.
-- [ ] **Step 2: Frontend** — summary cards, course list with drill-down to classes.
-- [ ] **Step 3: Verify** manual.
-- [ ] **Step 4: Commit**.
+- [x] **Step 1: Backend** — add `dashboard` router + service; test summary counts.
+- [x] **Step 2: Frontend** — summary cards, course list with drill-down to classes.
+- [x] **Step 3: Verify** manual.
+- [x] **Step 4: Commit**.
 
 ### Task 18: Courses/Classes/Students/Components management UI
 

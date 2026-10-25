@@ -5,6 +5,7 @@ import { Layout } from "@/components/Layout";
 import { PlaceholderPage } from "@/components/PlaceholderPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { LoginPage } from "@/features/auth/LoginPage";
+import { DashboardPage } from "@/features/dashboard/DashboardPage";
 
 const queryClient = new QueryClient();
 
@@ -17,7 +18,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/dashboard" element={<PlaceholderPage dashboard title="Dashboard" />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/courses" element={<PlaceholderPage title="Mata Kuliah" />} />
               <Route element={<ProtectedRoute allowedRoles={["superadmin"]} />}>
                 <Route path="/users" element={<PlaceholderPage title="Pengguna" />} />
