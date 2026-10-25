@@ -19,7 +19,7 @@ from app.services.grade import calculate_final_score
 
 
 async def save_scores(
-    db: AsyncSession, enrollment_id: uuid.UUID, values: dict[uuid.UUID, Decimal], user: User,
+    db: AsyncSession, enrollment_id: uuid.UUID, values: dict[uuid.UUID, Decimal | None], user: User,
 ) -> Grade:
     enrollment = await score_repo.get_enrollment(db, enrollment_id)
     if enrollment is None:
@@ -43,10 +43,11 @@ async def save_scores(
     for component_id, value in values.items():
         if component_id not in by_id:
             raise HTTPException(422, "Komponen penilaian tidak ditemukan pada kelas ini")
-        if value < 0 or value > by_id[component_id].max_score:
+        if value is not None and (value < 0 or value > by_id[component_id].max_score):
             raise HTTPException(422, "Nilai harus antara nol dan nilai maksimum komponen")
     try:
-        await score_repo.upsert(db, enrollment_id, values, user.id)
+        await score_repo.clear(db, enrollment_id, [key for key, value in values.items() if value is None])
+        await score_repo.upsert(db, enrollment_id, {key: value for key, value in values.items() if value is not None}, user.id)
         scores = {row.component_id: row.score for row in await score_repo.list_by_enrollment(db, enrollment_id)}
         final_score = calculate_final_score(components, scores)
         if grade is None:

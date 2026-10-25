@@ -21,4 +21,4 @@ Plan: [Sistem Input & Rekap Nilai](2026-10-24-sistem-input-rekap-nilai.md), Task
 - Browser verification also covered dashboard refresh/navigation, dialog autofocus, Tab containment, Escape/focus restoration, and 320/375px layouts. Desktop/mobile screenshots were inspected; no runtime errors were observed.
 - Browser regression reproduced collapsed controls after component reorder. Disabling container-query containment specifically for movable field groups fixed the issue; reorder/save/delete was verified again without changing shared field behavior.
 - A separate read-only review found no required changes. Existing user edits to the student router and class tests, plus untracked AGENTS.md and egg-info, are excluded from this task's commit.
-- Next: **Task 19 — Grade entry grid UI**.
+- Task 19 is implemented; see [grade grid progress](2026-10-25-grade-grid-progress.md). Next: **Task 20 - Charts (Recharts)**.

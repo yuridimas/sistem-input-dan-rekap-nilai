@@ -20,5 +20,5 @@ async def put_scores(
     enrollment_id: uuid.UUID, payload: ScorePayload,
     db: AsyncSession = Depends(get_db), user: User = Depends(require_role("superadmin", "lecturer")),
 ) -> GradeRead:
-    """Upsert the supplied scores; omitted component scores are retained."""
+    """Upsert numeric scores, clear null scores; omitted component scores are retained."""
     return GradeRead.model_validate(await save_scores(db, enrollment_id, payload, user))

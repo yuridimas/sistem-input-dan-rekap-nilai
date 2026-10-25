@@ -148,7 +148,7 @@ async def test_partial_scores_preserve_missing_and_zero_scores(grading_context):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("value", ["-0.01", "100.01", "NaN", "Infinity", "1.001", None, True, "invalid"])
+@pytest.mark.parametrize("value", ["-0.01", "100.01", "NaN", "Infinity", "1.001", True, "invalid"])
 async def test_invalid_scores_rejected_atomically(grading_context, value):
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
     response = await client.put(f"/enrollments/{enrollments[0]}/scores", headers=owner,
