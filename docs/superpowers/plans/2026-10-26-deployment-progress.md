@@ -18,4 +18,4 @@ Plan: [Sistem Input & Rekap Nilai](2026-10-24-sistem-input-rekap-nilai.md), Task
 - Starting the deploy database without deployment environment settings failed as expected, even though Compose otherwise defaults service env files to `.env.local`.
 - The disposable verification containers, networks, and database volumes were removed after smoke checks. No real `.env.staging` or `.env.prod` was created; copy the templates and replace all placeholders before deployment.
 - `frontend/Dockerfile.prod` builds successfully. Docker image tags were confirmed against [Node](https://hub.docker.com/_/node) and [Nginx](https://hub.docker.com/_/nginx) official image listings.
-- Next: **Task 23 — DB comments verification, seed data, and README**.
+- Project plan complete after **Task 23**; see [final validation](2026-10-26-final-validation-progress.md).

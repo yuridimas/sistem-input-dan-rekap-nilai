@@ -15,4 +15,4 @@ Plan: [Sistem Input & Rekap Nilai](2026-10-24-sistem-input-rekap-nilai.md), Task
 - `npm run build` passed.
 - `rtk bypass npm run lint` passed with the existing Fast Refresh warning in `src/components/ui/button.tsx`.
 - `git diff --check` passed. UI behavior was exercised through React Testing Library; no live-browser or backend-connected smoke run was available in this session.
-- Next: **Task 23 — DB comments verification, seed data, and README**.
+- Project plan complete after **Task 23**; see [final validation](2026-10-26-final-validation-progress.md).

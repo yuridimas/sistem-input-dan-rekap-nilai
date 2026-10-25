@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-**Resume status (2026-10-26):** Tasks 1–22 are implemented. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. Task 20 frontend verification and decisions are in [analytics progress](2026-10-26-analytics-progress.md); Task 21 frontend verification is in [export and notifications progress](2026-10-26-export-notifications-progress.md); Task 22 deployment verification is in [deployment progress](2026-10-26-deployment-progress.md). See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), [Excel progress](2026-10-25-excel-progress.md), [auth and layout progress](2026-10-25-auth-layout-progress.md), [dashboard progress](2026-10-25-dashboard-progress.md), [academic management progress](2026-10-25-academic-management-progress.md), and [grade grid progress](2026-10-25-grade-grid-progress.md). Resume with **Task 23**. Original step checkboxes below are retained as the execution template.
+**Resume status (2026-10-26):** Tasks 1–23 are implemented; this plan is complete. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. Task 20 frontend verification and decisions are in [analytics progress](2026-10-26-analytics-progress.md); Task 21 frontend verification is in [export and notifications progress](2026-10-26-export-notifications-progress.md); Task 22 deployment verification is in [deployment progress](2026-10-26-deployment-progress.md); Task 23 final checks are in [final validation progress](2026-10-26-final-validation-progress.md). See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), [Excel progress](2026-10-25-excel-progress.md), [auth and layout progress](2026-10-25-auth-layout-progress.md), [dashboard progress](2026-10-25-dashboard-progress.md), [academic management progress](2026-10-25-academic-management-progress.md), and [grade grid progress](2026-10-25-grade-grid-progress.md). Original step checkboxes below are retained as the execution template.
 
 - Version floors: Python 3.11+, Node 20+, PostgreSQL 18, latest major for all libraries — verify installed versions before execution and pin exact majors in lockfiles.
 - Frontend tooling (Task 19): Node ^22.22.2 || ^24.15.0 || >=26.0.0; the frontend Docker image uses Node 24 for current Vitest/jsdom compatibility.
@@ -456,10 +456,10 @@ async def test_health_ok():
 **Interfaces:**
 - Script queries `information_schema` and asserts every table/column has non-null comment. README documents setup, env vars, docker profiles, test commands.
 
-- [ ] **Step 1: Write verification script** and run → all pass.
-- [ ] **Step 2: Write README** (Bahasa Indonesia + English setup).
-- [ ] **Step 3: Final manual smoke test** of all 10 features on local profile.
-- [ ] **Step 4: Commit**.
+- [x] **Step 1: Write verification script** and run → all pass.
+- [x] **Step 2: Write README** (Bahasa Indonesia + English setup).
+- [x] **Step 3: Final local smoke and regression check** for all 10 features.
+- [x] **Step 4: Commit**.
 
 ---
 

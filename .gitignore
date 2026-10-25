@@ -10,5 +10,8 @@ frontend/dist/
 frontend/.vite/
 
 # deployment secrets
+.env.local
 .env.staging
 .env.prod
+backend/.env
+frontend/.env.local
