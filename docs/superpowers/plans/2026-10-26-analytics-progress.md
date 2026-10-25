@@ -15,4 +15,4 @@ Plan: [Sistem Input & Rekap Nilai](2026-10-24-sistem-input-rekap-nilai.md), Task
 - Frontend suite: **37 tests passed**. Includes bucket boundaries, zeros, complete-draft filtering, normalization, fractional weights, legacy missing values, semester sorting/means, loading retry, empty history, single-semester trend, and draft guard retention while switching tabs.
 - `npm run build` passed. `rtk bypass npm run lint` passed with the existing `button.tsx` Fast Refresh warning only.
 - Edge smoke against disposable PostgreSQL/API data verified all five bucket labels at 320px, class SVG dimensions and tooltips, the draft filter, keyboard trend tooltip, lecturer history scoping versus superadmin visibility, and 320/375px layouts without document overflow or runtime exceptions. Screenshots and smoke script are in the ignored Task 20 workspace.
-- Next: **Task 22 — Docker staging/prod profiles and nginx**.
+- Next: **Task 23 — DB comments verification, seed data, and README**.

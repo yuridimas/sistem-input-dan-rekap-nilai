@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-**Resume status (2026-10-26):** Tasks 1–21 are implemented. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. Task 20 frontend verification and decisions are in [analytics progress](2026-10-26-analytics-progress.md); Task 21 frontend verification is in [export and notifications progress](2026-10-26-export-notifications-progress.md). See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), [Excel progress](2026-10-25-excel-progress.md), [auth and layout progress](2026-10-25-auth-layout-progress.md), [dashboard progress](2026-10-25-dashboard-progress.md), [academic management progress](2026-10-25-academic-management-progress.md), and [grade grid progress](2026-10-25-grade-grid-progress.md). Resume with **Task 22**. Original step checkboxes below are retained as the execution template.
+**Resume status (2026-10-26):** Tasks 1–22 are implemented. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. Task 20 frontend verification and decisions are in [analytics progress](2026-10-26-analytics-progress.md); Task 21 frontend verification is in [export and notifications progress](2026-10-26-export-notifications-progress.md); Task 22 deployment verification is in [deployment progress](2026-10-26-deployment-progress.md). See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), [Excel progress](2026-10-25-excel-progress.md), [auth and layout progress](2026-10-25-auth-layout-progress.md), [dashboard progress](2026-10-25-dashboard-progress.md), [academic management progress](2026-10-25-academic-management-progress.md), and [grade grid progress](2026-10-25-grade-grid-progress.md). Resume with **Task 23**. Original step checkboxes below are retained as the execution template.
 
 - Version floors: Python 3.11+, Node 20+, PostgreSQL 18, latest major for all libraries — verify installed versions before execution and pin exact majors in lockfiles.
 - Frontend tooling (Task 19): Node ^22.22.2 || ^24.15.0 || >=26.0.0; the frontend Docker image uses Node 24 for current Vitest/jsdom compatibility.
@@ -434,16 +434,18 @@ async def test_health_ok():
 ### Task 22: Docker staging/prod profiles + nginx
 
 **Files:**
-- Modify: `docker-compose.yml` (add staging/prod profiles, nginx service)
-- Create: `nginx/nginx.conf`, `frontend/Dockerfile.prod`
+- Modify: `docker-compose.yml`, `.gitignore`, `backend/.dockerignore`, `frontend/.dockerignore`
+- Create: `nginx/nginx.conf`, `frontend/Dockerfile.prod`, `frontend/nginx.prod.conf`, `.env.staging.example`, `.env.prod.example`
 
 **Interfaces:**
-- `docker compose --profile staging up` and `--profile prod up` work; healthchecks pass; TLS placeholder documented.
+- Copy the env templates to `.env.staging` and `.env.prod`, replace all placeholders, then run `docker compose -p nilai-staging --env-file .env.staging --profile staging up --build --wait` or `docker compose -p nilai-prod --env-file .env.prod --profile prod up --build --wait`.
+- Only edge Nginx is reachable by the host-local TLS terminator; `/api/*` is forwarded to FastAPI with the prefix removed, while SPA paths fall back to `index.html`.
+- Healthchecks pass for dependencies and services; TLS termination is external.
 
-- [ ] **Step 1: Add profiles** with production Dockerfiles (backend gunicorn/uvicorn workers, frontend built static).
-- [ ] **Step 2: nginx config** reverse proxy + static serving.
-- [ ] **Step 3: Verify** staging profile boots and `/health` ok.
-- [ ] **Step 4: Commit**.
+- [x] **Step 1: Add profiles** with backend Uvicorn workers, Celery worker, migration job, and built static frontend.
+- [x] **Step 2: nginx config** reverse proxy + SPA static serving.
+- [x] **Step 3: Verify** local/staging/prod Compose config; staging/prod health, API proxy, and SPA deep links.
+- [x] **Step 4: Commit**.
 
 ### Task 23: DB comments verification + seed data + README
 

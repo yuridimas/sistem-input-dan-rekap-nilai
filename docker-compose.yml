@@ -2,18 +2,36 @@ services:
   db:
     image: postgres:18
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: grades
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-grades}
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d grades"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 5s
       retries: 10
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${DB_HOST_PORT:-5432}:5432"
+    profiles: ["local"]
+
+  db-deploy:
+    image: postgres:18
+    env_file: ${APP_ENV_FILE:-.env.local}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - 'case "$$DEPLOYMENT_ENV" in staging|prod) ;; *) echo "Set DEPLOYMENT_ENV with the staging or prod environment file" >&2; exit 1 ;; esac; exec /usr/local/bin/docker-entrypoint.sh postgres'
+    volumes:
+      - pgdata-deploy:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "127.0.0.1:${DB_HOST_PORT:-55432}:5432"
+    profiles: ["staging", "prod"]
 
   redis:
     image: redis:7-alpine
@@ -23,7 +41,7 @@ services:
       timeout: 5s
       retries: 10
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
 
   backend:
     build: ./backend
@@ -67,5 +85,88 @@ services:
       - backend
     profiles: ["local"]
 
+  migrate:
+    build: ./backend
+    command: ["alembic", "upgrade", "head"]
+    env_file: ${APP_ENV_FILE:-.env.local}
+    depends_on:
+      db-deploy:
+        condition: service_healthy
+    restart: "no"
+    profiles: ["staging", "prod"]
+
+  backend-deploy:
+    build: ./backend
+    command:
+      ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "${UVICORN_WORKERS:-2}", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    env_file: ${APP_ENV_FILE:-.env.local}
+    restart: unless-stopped
+    depends_on:
+      db-deploy:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import json, urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)); raise SystemExit(0 if d.get('status') == 'ok' and d.get('db') is True and d.get('redis') is True else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    profiles: ["staging", "prod"]
+
+  worker-deploy:
+    build: ./backend
+    command: ["celery", "-A", "app.celery_app:celery_app", "worker", "--loglevel=info"]
+    env_file: ${APP_ENV_FILE:-.env.local}
+    restart: unless-stopped
+    depends_on:
+      db-deploy:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    profiles: ["staging", "prod"]
+
+  frontend-deploy:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: /api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles: ["staging", "prod"]
+
+  nginx:
+    image: nginx:1.31-alpine3.24-slim
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend-deploy:
+        condition: service_healthy
+      frontend-deploy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    profiles: ["staging", "prod"]
+
 volumes:
   pgdata:
+  pgdata-deploy:
