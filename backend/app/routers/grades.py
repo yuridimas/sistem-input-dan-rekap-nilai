@@ -9,8 +9,10 @@ from app.database import get_db
 from app.dependencies import require_role
 from app.models.user import User
 from app.schemas.grades import ClassGradesRead, FinalizeRead, RankingRead
+from app.schemas.history import HistoryRead
 from app.services.grade import class_grades, finalize_class
 from app.services.ranking import class_ranking
+from app.services.history import student_history
 
 router = APIRouter(tags=["grades"])
 
@@ -37,3 +39,11 @@ async def get_ranking(
     user: User = Depends(require_role("superadmin", "lecturer")),
 ) -> list[RankingRead]:
     return await class_ranking(db, class_id, user)
+
+
+@router.get("/students/{student_id}/history", response_model=list[HistoryRead])
+async def get_student_history(
+    student_id: uuid.UUID, db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role("superadmin", "lecturer")),
+) -> list[HistoryRead]:
+    return await student_history(db, student_id, user)

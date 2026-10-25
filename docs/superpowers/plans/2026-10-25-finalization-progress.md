@@ -35,4 +35,4 @@ Plan: [Sistem Input & Rekap Nilai](2026-10-24-sistem-input-rekap-nilai.md), Task
 - Real multi-connection tests cover two finalizers, score edits versus release, roster changes versus release, new-student transaction locking, and concurrent same-NIM creation in different classes.
 - Tests cover all missing scores, zero scores, authorization, current-owner checks, shared finalization metadata, stale draft recomputation, missing grade reconstruction, ranking tie-breaks, transaction rollback, queue failure, thread offload, database comments, and post-release immutability.
 - `alembic upgrade head` succeeded; `alembic check` reports no new upgrade operations.
-- Next: **Task 12 — Grade history (read-only)**.
+- Task 12 is now implemented; see [history progress](2026-10-25-history-progress.md). Next: **Task 13 — Celery + Redis + email task**.

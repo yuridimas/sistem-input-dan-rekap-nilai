@@ -37,4 +37,4 @@ The response is the updated grade (`id`, `enrollment_id`, `final_score`, `status
 - Backend suite: **71 passed**, with one existing SlowAPI deprecation warning.
 - Includes real concurrent requests using separate database connections, transaction rollback on grade-save failure, access boundaries, cross-class components, zero/missing scores, audit timestamps, and database comments.
 - `alembic upgrade head` succeeded; `alembic check` reports no new upgrade operations.
-- Task 11 is now implemented; see [finalization and ranking progress](2026-10-25-finalization-progress.md). Next: **Task 12 — Grade history (read-only)**.
+- Tasks 11–12 are now implemented; see [finalization progress](2026-10-25-finalization-progress.md) and [history progress](2026-10-25-history-progress.md). Next: **Task 13 — Celery + Redis + email task**.
