@@ -21,6 +21,7 @@ import { Roster } from "./Roster";
 import { GradeEntryGrid } from "@/features/grades/GradeEntryGrid";
 import { GradeNavigationGuard } from "@/features/grades/GradeNavigationGuard";
 import { useGradeEntry } from "@/features/grades/hooks";
+import { ClassReportDownloads } from "@/features/reports/ReportDownloadButton";
 
 const ClassAnalyticsPanel = lazy(() =>
   import("@/features/analytics/ClassAnalyticsPanel").then((module) => ({
@@ -88,6 +89,7 @@ function ClassDetailContent() {
             title={`Kelas ${data.section}`}
           >
             <div className="flex flex-wrap gap-2">
+              {data.has_finalized_grades && <ClassReportDownloads classId={data.id} />}
               <Button onClick={() => setDialog({})} variant="outline">
                 Edit kelas
               </Button>

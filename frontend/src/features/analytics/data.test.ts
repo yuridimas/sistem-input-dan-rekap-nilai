@@ -109,9 +109,9 @@ describe("class analytics transformations", () => {
 describe("student history trend", () => {
   it("sorts semester labels naturally and averages accessible finalized class results", () => {
     const history: GradeHistoryEntry[] = [
-      { course: { semester: "Semester 10" }, final_score: "80", class: { section: "B", academic_year: "2025/2026" } },
-      { course: { semester: "Semester 2" }, final_score: "60", class: { section: "A", academic_year: "2024/2025" } },
-      { course: { semester: "Semester 2" }, final_score: "80", class: { section: "C", academic_year: "2024/2025" } },
+      { enrollment_id: "e10", course: { semester: "Semester 10" }, final_score: "80", class: { section: "B", academic_year: "2025/2026" } },
+      { enrollment_id: "e2a", course: { semester: "Semester 2" }, final_score: "60", class: { section: "A", academic_year: "2024/2025" } },
+      { enrollment_id: "e2b", course: { semester: "Semester 2" }, final_score: "80", class: { section: "C", academic_year: "2024/2025" } },
     ];
 
     expect(buildStudentTrend(history)).toEqual([

@@ -13,6 +13,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/courses": "Mata Kuliah",
   "/users": "Pengguna",
+  "/notifications": "Status notifikasi",
   "/students": "Mahasiswa",
 };
 

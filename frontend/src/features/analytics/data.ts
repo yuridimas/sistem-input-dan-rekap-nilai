@@ -30,7 +30,7 @@ export interface ClassAnalytics {
 
 export interface GradeHistoryEntry {
   grade_id?: string;
-  enrollment_id?: string;
+  enrollment_id: string;
   course: { id?: string; code?: string; name?: string; semester: string };
   class: { id?: string; section: string; academic_year: string };
   final_score: string;

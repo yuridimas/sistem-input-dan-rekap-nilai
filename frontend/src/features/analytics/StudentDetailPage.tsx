@@ -4,6 +4,7 @@ import { PageHeader, QueryState } from "@/features/academic/Management";
 import { useAcademicQuery, type Student } from "@/features/academic/api";
 import { StudentTrend } from "./StudentTrend";
 import type { GradeHistoryEntry } from "./data";
+import { StudentReportList } from "@/features/reports/StudentReportList";
 
 export function StudentDetailPage() {
   const { studentId } = useParams();
@@ -35,6 +36,7 @@ export function StudentDetailPage() {
       ) : (
         <>
           <StudentTrend history={history.data ?? []} />
+          <StudentReportList history={history.data ?? []} />
           <p className="text-xs text-muted-foreground">
             Riwayat hanya mencakup nilai final dari kelas yang dapat diakses akun Anda.
           </p>

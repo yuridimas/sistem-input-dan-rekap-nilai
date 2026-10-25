@@ -1,4 +1,4 @@
-import { BookOpen, GraduationCap, LayoutDashboard, Users, X } from "lucide-react";
+import { Bell, BookOpen, GraduationCap, LayoutDashboard, Users, X } from "lucide-react";
 import { useRef, type KeyboardEvent } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -11,6 +11,7 @@ export function Sidebar({ user, open, onClose }: { user: AuthUser; open: boolean
     { label: user.role === "superadmin" ? "Semua Mata Kuliah" : "Mata Kuliah Saya", to: "/courses", icon: BookOpen },
     { label: "Mahasiswa", to: "/students", icon: GraduationCap },
     ...(user.role === "superadmin" ? [{ label: "Pengguna", to: "/users", icon: Users }] : []),
+    ...(user.role === "superadmin" ? [{ label: "Notifikasi", to: "/notifications", icon: Bell }] : []),
   ];
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {

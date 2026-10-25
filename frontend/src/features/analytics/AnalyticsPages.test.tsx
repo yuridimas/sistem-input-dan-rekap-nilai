@@ -32,6 +32,7 @@ function mount(element: React.ReactNode, route = "/") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   const router = createMemoryRouter([
     { path: "/", element },
+    { path: "/classes/:classId", element },
     { path: "/students/:studentId", element },
   ], { initialEntries: [route] });
   return render(<QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider>);
@@ -98,6 +99,17 @@ describe("class analytics panel", () => {
     expect(await screen.findByRole("dialog")).toHaveTextContent("Perubahan nilai belum selesai");
     expect(screen.queryByText("Daftar mata kuliah")).not.toBeInTheDocument();
   });
+
+  it("shows class PDF and Excel exports when finalized grades exist", async () => {
+    vi.mocked(api.get).mockImplementation(async (path) => {
+      if (path === "/classes/class-1") return { data: { id: "class-1", course_id: "course-1", section: "A", academic_year: "2026/2027", lecturer_id: "lecturer-1", has_finalized_grades: true } };
+      if (path === "/courses/course-1") return { data: { id: "course-1", code: "IF101", name: "Pemrograman", credits: 3, semester: "Semester 1", created_by: "lecturer-1" } };
+      return { data: [] };
+    });
+    mount(<ClassDetailPage />, "/classes/class-1");
+    expect(await screen.findByRole("button", { name: "Unduh PDF" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Unduh Excel" })).toBeInTheDocument();
+  });
 });
 
 describe("student detail page", () => {
@@ -117,6 +129,7 @@ describe("student detail page", () => {
       data: path.endsWith("/history")
         ? [{
             grade_id: "g1",
+            enrollment_id: "enrollment-1",
             course: { code: "IF1", semester: "Semester 1" },
             class: { section: "A", academic_year: "2026/2027" },
             final_score: "42.5",
@@ -125,6 +138,8 @@ describe("student detail page", () => {
     }));
     mount(<StudentDetailPage />, "/students/s1");
     expect(await screen.findByRole("heading", { name: "Rata-rata nilai per semester", level: 2 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Riwayat nilai final" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Unduh PDF nilai IF1, kelas A 2026\/2027/ })).toBeInTheDocument();
     await userEvent.click(await screen.findByText("Lihat tabel data"));
     const table = screen.getByRole("region", { name: "Tabel rata-rata nilai per semester" });
     expect(table).toHaveTextContent("42.50");

@@ -38,6 +38,11 @@ const StudentDetailPage = lazy(() =>
     default: module.StudentDetailPage,
   })),
 );
+const NotificationsPage = lazy(() =>
+  import("@/features/notifications/NotificationsPage").then((module) => ({
+    default: module.NotificationsPage,
+  })),
+);
 
 const queryClient = new QueryClient();
 
@@ -55,6 +60,7 @@ const router = createBrowserRouter(
           <Route path="/students" element={<StudentsPage />} />
           <Route path="/students/:studentId" element={<StudentDetailPage />} />
           <Route element={<ProtectedRoute allowedRoles={["superadmin"]} />}>
+            <Route path="/notifications" element={<NotificationsPage />} />
             <Route
               path="/users"
               element={<PlaceholderPage title="Pengguna" />}

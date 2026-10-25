@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-**Resume status (2026-10-26):** Tasks 1–20 are implemented. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. Task 20 frontend verification and decisions are in [analytics progress](2026-10-26-analytics-progress.md). See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), [Excel progress](2026-10-25-excel-progress.md), [auth and layout progress](2026-10-25-auth-layout-progress.md), [dashboard progress](2026-10-25-dashboard-progress.md), [academic management progress](2026-10-25-academic-management-progress.md), and [grade grid progress](2026-10-25-grade-grid-progress.md). Resume with **Task 21**. Original step checkboxes below are retained as the execution template.
+**Resume status (2026-10-26):** Tasks 1–21 are implemented. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. Task 20 frontend verification and decisions are in [analytics progress](2026-10-26-analytics-progress.md); Task 21 frontend verification is in [export and notifications progress](2026-10-26-export-notifications-progress.md). See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), [Excel progress](2026-10-25-excel-progress.md), [auth and layout progress](2026-10-25-auth-layout-progress.md), [dashboard progress](2026-10-25-dashboard-progress.md), [academic management progress](2026-10-25-academic-management-progress.md), and [grade grid progress](2026-10-25-grade-grid-progress.md). Resume with **Task 22**. Original step checkboxes below are retained as the execution template.
 
 - Version floors: Python 3.11+, Node 20+, PostgreSQL 18, latest major for all libraries — verify installed versions before execution and pin exact majors in lockfiles.
 - Frontend tooling (Task 19): Node ^22.22.2 || ^24.15.0 || >=26.0.0; the frontend Docker image uses Node 24 for current Vitest/jsdom compatibility.
@@ -422,10 +422,10 @@ async def test_health_ok():
 **Interfaces:**
 - Export buttons trigger download (PDF/XLSX) via backend URLs. Superadmin view for failed notifications + retry.
 
-- [ ] **Step 1: Implement export buttons with download handling.**
-- [ ] **Step 2: Implement notifications status view (superadmin).**
-- [ ] **Step 3: Verify** manual.
-- [ ] **Step 4: Commit**.
+- [x] **Step 1: Implement export buttons with download handling.**
+- [x] **Step 2: Implement notifications status view (superadmin).**
+- [x] **Step 3: Verify** frontend flows with React Testing Library, build, and lint.
+- [x] **Step 4: Commit**.
 
 ---
 
