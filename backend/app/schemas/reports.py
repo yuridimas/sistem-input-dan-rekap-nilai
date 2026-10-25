@@ -17,6 +17,7 @@ class ReportRow(BaseModel):
 
 
 class ReportComponent(BaseModel):
+    id: uuid.UUID
     name: str
     category: str
     weight: Decimal
@@ -33,3 +34,4 @@ class ReportData(BaseModel):
     academic_year: str
     rows: list[ReportRow]
     components: list[ReportComponent] = Field(default_factory=list)
+    component_scores: dict[uuid.UUID, dict[uuid.UUID, Decimal | None]] = Field(default_factory=dict)

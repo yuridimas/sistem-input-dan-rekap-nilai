@@ -1,6 +1,7 @@
-"""Final-only report loading and thread-isolated WeasyPrint rendering."""
+"""Final-only report loading and offloaded PDF/XLSX rendering."""
 
 import asyncio
+import io
 import logging
 import uuid
 from datetime import timezone
@@ -49,9 +50,11 @@ async def load_student_report(db: AsyncSession, enrollment_id: uuid.UUID, user: 
         raise HTTPException(404, "Pendaftaran mahasiswa tidak ditemukan")
     class_ = await get_class(db, row[0].class_id, user)
     report = await _report_context(db, class_, [_report_row(row)])
-    report.components = [ReportComponent(name=component.name, category=component.category,
+    component_rows = await history_repo.list_components(db, [enrollment_id])
+    report.components = [ReportComponent(id=component.id, name=component.name, category=component.category,
                                          weight=component.weight, max_score=component.max_score, score=score)
-                         for _id, component, score in await history_repo.list_components(db, [enrollment_id])]
+                         for _id, component, score in component_rows]
+    report.component_scores = {enrollment_id: {component.id: score for _, component, score in component_rows}}
     return report
 
 
@@ -60,7 +63,17 @@ async def load_class_report(db: AsyncSession, class_id: uuid.UUID, user: User) -
     rows = await repo.list_class(db, class_id)
     if not rows:
         raise HTTPException(409, "Kelas belum memiliki nilai final untuk diekspor")
-    return await _report_context(db, class_, [_report_row(row) for row in rows])
+    report = await _report_context(db, class_, [_report_row(row) for row in rows])
+    component_rows = await history_repo.list_components(db, [row.enrollment_id for row in report.rows])
+    component_by_id: dict[uuid.UUID, ReportComponent] = {}
+    for enrollment_id, component, score in component_rows:
+        component_by_id.setdefault(component.id, ReportComponent(
+            id=component.id, name=component.name, category=component.category,
+            weight=component.weight, max_score=component.max_score, score=None,
+        ))
+        report.component_scores.setdefault(enrollment_id, {})[component.id] = score
+    report.components = list(component_by_id.values())
+    return report
 
 
 def reject_resource(url: str, *args: Any, **kwargs: Any) -> NoReturn:
@@ -94,3 +107,60 @@ def _render_pdf(template_name: str, report: ReportData, institution_name: str) -
 async def render_pdf(report: ReportData, *, student: bool) -> bytes:
     return await asyncio.to_thread(_render_pdf, "student_report.html" if student else "class_report.html",
                                    report, get_settings().institution_name)
+
+
+def _render_xlsx(report: ReportData) -> bytes:
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Font, PatternFill
+    except ImportError as exc:
+        raise HTTPException(503, "Export Excel belum tersedia; periksa dependensi workbook") from exc
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Rekap Kelas"
+
+    def text_cell(cell: Any, value: str) -> None:
+        cell.value = value
+        cell.data_type = "s"
+
+    headers = ["NIM", "Nama"]
+    headers.extend(
+        f"{component.name} ({component.category}, bobot {_decimal(component.weight)}%, maks {_decimal(component.max_score)})"
+        for component in report.components
+    )
+    headers.extend(["Nilai Akhir", "Peringkat", "Status"])
+    for column, value in enumerate(headers, start=1):
+        text_cell(sheet.cell(row=1, column=column), value)
+        sheet.cell(row=1, column=column).font = Font(bold=True, color="FFFFFF")
+        sheet.cell(row=1, column=column).fill = PatternFill(fill_type="solid", fgColor="1F4E78")
+        sheet.cell(row=1, column=column).alignment = Alignment(wrap_text=True, vertical="center")
+
+    for row_index, report_row in enumerate(report.rows, start=2):
+        text_cell(sheet.cell(row=row_index, column=1), report_row.nim)
+        text_cell(sheet.cell(row=row_index, column=2), report_row.full_name)
+        scores = report.component_scores.get(report_row.enrollment_id, {})
+        for column, component in enumerate(report.components, start=3):
+            cell = sheet.cell(row=row_index, column=column, value=scores.get(component.id))
+            cell.number_format = "0.00"
+        final_column = len(report.components) + 3
+        sheet.cell(row=row_index, column=final_column, value=report_row.final_score).number_format = "0.00"
+        sheet.cell(row=row_index, column=final_column + 1, value=report_row.rank)
+        text_cell(sheet.cell(row=row_index, column=final_column + 2),
+                  "Tidak lulus" if report_row.final_score < 45 else "Lulus")
+
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = sheet.dimensions
+    sheet.row_dimensions[1].height = 32
+    for column in sheet.columns:
+        letter = column[0].column_letter
+        width = max(len(str(cell.value or "")) for cell in column) + 2
+        sheet.column_dimensions[letter].width = min(max(width, 12), 55)
+
+    output = io.BytesIO()
+    workbook.save(output)
+    return output.getvalue()
+
+
+async def render_xlsx(report: ReportData) -> bytes:
+    return await asyncio.to_thread(_render_xlsx, report)

@@ -12,10 +12,11 @@ from app.services import reports as service
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 _roles = require_role("superadmin", "lecturer")
+_XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
-def _download(content: bytes, filename: str) -> Response:
-    return Response(content, media_type="application/pdf", headers={
+def _download(content: bytes, filename: str, media_type: str = "application/pdf") -> Response:
+    return Response(content, media_type=media_type, headers={
         "Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store",
     })
 
@@ -34,3 +35,11 @@ async def class_pdf(
 ) -> Response:
     report = await service.load_class_report(db, class_id, user)
     return _download(await service.render_pdf(report, student=False), f"rekap-kelas-{class_id}.pdf")
+
+
+@router.get("/class/{class_id}/xlsx", response_class=Response)
+async def class_xlsx(
+    class_id: uuid.UUID, db: AsyncSession = Depends(get_db), user: User = Depends(_roles),
+) -> Response:
+    report = await service.load_class_report(db, class_id, user)
+    return _download(await service.render_xlsx(report), f"rekap-kelas-{class_id}.xlsx", _XLSX_MEDIA_TYPE)

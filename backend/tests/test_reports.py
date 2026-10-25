@@ -13,6 +13,7 @@ from app.database import engine
 from app.models.enrollment import Enrollment
 from app.models.grade import Grade
 from app.models.ranking import Ranking
+from app.models.score import Score
 from app.models.student import Student
 from app.models.user import User
 from app.services.auth import decode_token
@@ -70,9 +71,95 @@ async def test_class_pdf_is_summary_and_institution_name_is_configurable(grading
 
 
 @pytest.mark.asyncio
+async def test_class_xlsx_contains_finalized_roster_components_and_safe_text(grading_context, monkeypatch):
+    client, class_id, enrollments, components, (owner, _, _), db = grading_context
+    await finalize(grading_context, monkeypatch)
+    student_id = await db.scalar(select(Enrollment.student_id).where(Enrollment.id == uuid.UUID(enrollments[0])))
+    await db.execute(update(Student).where(Student.id == student_id).values(full_name="=1+1"))
+    await db.execute(delete(Ranking).where(Ranking.enrollment_id == uuid.UUID(enrollments[0])))
+    await db.execute(update(Score).where(Score.enrollment_id == uuid.UUID(enrollments[0]),
+                                         Score.component_id == uuid.UUID(components[0]["id"])).values(score=0))
+    await db.execute(update(Grade).where(Grade.enrollment_id == uuid.UUID(enrollments[1])).values(final_score=Decimal("44.99")))
+    await db.commit()
+
+    response = await client.get(f"/reports/class/{class_id}/xlsx", headers=owner)
+
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["content-disposition"] == f'attachment; filename="rekap-kelas-{class_id}.xlsx"'
+    from openpyxl import load_workbook
+
+    workbook = load_workbook(io.BytesIO(response.content), data_only=False)
+    sheet = workbook["Rekap Kelas"]
+    headers = [cell.value for cell in sheet[1]]
+    assert headers[:2] == ["NIM", "Nama"]
+    assert headers[-3:] == ["Nilai Akhir", "Peringkat", "Status"]
+    assert len(headers) == len(components) + 5
+    assert sheet.max_row == len(enrollments) + 1
+    assert sheet.freeze_panes == "A2" and sheet.auto_filter.ref == sheet.dimensions
+    assert sheet[1][0].font.bold and sheet[1][0].fill.fgColor.rgb.endswith("1F4E78")
+    assert sheet[2][1].value == "=1+1" and sheet[2][1].data_type != "f"
+    assert sheet[2][-3].value == 81 and sheet[2][-2].value is None and sheet[2][-1].value == "Lulus"
+    assert sheet[3][-3].value == pytest.approx(44.99) and sheet[3][-1].value == "Tidak lulus"
+    assert all(component["name"] in headers[index + 2] for index, component in enumerate(components))
+    assert "bobot 30,00%" in headers[2] and "maks 100,00" in headers[2]
+    assert [sheet.cell(row=2, column=index + 3).value for index in range(len(components))] == [0, 70, 90]
+
+
+@pytest.mark.asyncio
+async def test_class_xlsx_is_readonly_batched_and_offloaded(grading_context, monkeypatch):
+    from app.services import reports
+
+    client, class_id, _ids, _components, (owner, _, _), db = grading_context
+    await finalize(grading_context, monkeypatch)
+    calls, commits = [], []
+    main_thread = threading.get_ident()
+    original = reports._render_xlsx
+
+    def render(report):
+        assert threading.get_ident() != main_thread
+        return original(report)
+
+    def record(_conn, _cursor, statement, _params, _context, _many):
+        calls.append(statement)
+
+    def committed(_session):
+        commits.append(True)
+
+    monkeypatch.setattr(reports, "_render_xlsx", render)
+    event.listen(engine.sync_engine, "before_cursor_execute", record)
+    event.listen(db.sync_session, "after_commit", committed)
+    try:
+        response = await client.get(f"/reports/class/{class_id}/xlsx", headers=owner)
+    finally:
+        event.remove(engine.sync_engine, "before_cursor_execute", record)
+        event.remove(db.sync_session, "after_commit", committed)
+    assert response.status_code == 200, response.text
+    queries = [call for call in calls if not call.lstrip().upper().startswith("SAVEPOINT ")]
+    assert len(queries) <= 5 and all(call.lstrip().upper().startswith("SELECT") for call in queries)
+    assert commits == []
+
+
+@pytest.mark.asyncio
+async def test_class_xlsx_rejects_empty_and_partially_finalized_classes(grading_context):
+    client, class_id, enrollments, _components, (owner, _, _), db = grading_context
+    url = f"/reports/class/{class_id}/xlsx"
+    assert (await client.get(url, headers=owner)).status_code == 409
+    db.add(Grade(enrollment_id=uuid.UUID(enrollments[0]), final_score=50, status="finalized"))
+    await db.commit()
+    assert (await client.get(url, headers=owner)).status_code == 409
+    await db.execute(delete(Grade).where(Grade.enrollment_id == uuid.UUID(enrollments[0])))
+    await db.execute(delete(Enrollment).where(Enrollment.class_id == uuid.UUID(class_id)))
+    await db.commit()
+    assert (await client.get(url, headers=owner)).status_code == 409
+
+
+@pytest.mark.asyncio
 async def test_pdf_authorization_and_finalized_only(grading_context, monkeypatch):
     client, class_id, enrollments, _components, (owner, other, admin), _db = grading_context
-    urls = (f"/reports/student/{enrollments[0]}/pdf", f"/reports/class/{class_id}/pdf")
+    urls = (f"/reports/student/{enrollments[0]}/pdf", f"/reports/class/{class_id}/pdf",
+            f"/reports/class/{class_id}/xlsx")
     for url in urls:
         assert (await client.get(url)).status_code == 401
         assert (await client.get(url, headers=other)).status_code == 403
@@ -80,6 +167,8 @@ async def test_pdf_authorization_and_finalized_only(grading_context, monkeypatch
     for kind in ("student", "class"):
         assert (await client.get(f"/reports/{kind}/{uuid.uuid4()}/pdf", headers=owner)).status_code == 404
         assert (await client.get(f"/reports/{kind}/invalid/pdf", headers=owner)).status_code == 422
+    assert (await client.get(f"/reports/class/{uuid.uuid4()}/xlsx", headers=owner)).status_code == 404
+    assert (await client.get(f"/reports/class/invalid/xlsx", headers=owner)).status_code == 422
     await fill_scores(grading_context)
     for url in urls:
         assert (await client.get(url, headers=owner)).status_code == 409
@@ -168,7 +257,7 @@ async def test_render_offload_query_budget_and_readonly_export(grading_context, 
         event.remove(db.sync_session, "after_commit", committed)
     assert response.status_code == 200, response.text
     queries = [call for call in calls if not call.lstrip().upper().startswith("SAVEPOINT ")]
-    assert len(queries) <= 4 and all(call.lstrip().upper().startswith("SELECT") for call in queries)
+    assert len(queries) <= 5 and all(call.lstrip().upper().startswith("SELECT") for call in queries)
     assert commits == []
 
 
@@ -216,7 +305,7 @@ async def test_student_component_table_can_span_pages(grading_context, monkeypat
     await finalize(grading_context, monkeypatch)
     user_id = uuid.UUID(decode_token(owner["Authorization"].split()[1])["sub"])
     report = await load_student_report(db, uuid.UUID(enrollments[0]), await db.get(User, user_id))
-    report.components = [ReportComponent(name=f"Komponen-{index:03}", category="custom", weight=Decimal("1"),
+    report.components = [ReportComponent(id=uuid.uuid4(), name=f"Komponen-{index:03}", category="custom", weight=Decimal("1"),
                                          max_score=Decimal("100"), score=Decimal("81")) for index in range(100)]
     content = await render_pdf(report, student=True)
     texts = [page.extract_text() for page in PdfReader(io.BytesIO(content)).pages]
