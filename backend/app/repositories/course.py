@@ -2,10 +2,11 @@
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.course import Course
+from app.models.class_ import Class
 
 
 async def get_by_id(db: AsyncSession, course_id: uuid.UUID) -> Course | None:
@@ -24,9 +25,17 @@ async def list_courses(
 ) -> list[Course]:
     stmt = select(Course).order_by(Course.created_at.desc())
     if created_by is not None:
-        stmt = stmt.where(Course.created_by == created_by)
+        stmt = stmt.where(or_(Course.created_by == created_by, exists().where(
+            Class.course_id == Course.id, Class.lecturer_id == created_by,
+        )))
     result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def has_assigned_class(db: AsyncSession, course_id: uuid.UUID, lecturer_id: uuid.UUID) -> bool:
+    return bool(await db.scalar(select(exists().where(
+        Class.course_id == course_id, Class.lecturer_id == lecturer_id,
+    ))))
 
 
 async def add(db: AsyncSession, course: Course) -> Course:

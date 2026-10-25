@@ -18,4 +18,4 @@ Plan: [Sistem Input & Rekap Nilai](2026-10-24-sistem-input-rekap-nilai.md), Task
 - `npm run build` and `rtk bypass npm run lint` passed. The existing `react(only-export-components)` warning in `components/ui/button.tsx` remains.
 - Real Edge browser smoke against a separate disposable backend/database passed for both roles, account switching without stale dashboard data, course expansion by keyboard, release focus with open/closed course panels, empty data, loading, 503/retry recovery, and 320/375px layouts without horizontal overflow. No browser runtime errors were observed; desktop/mobile screenshots were inspected.
 - A separate read-only review found no required changes.
-- Next: **Task 18 — Courses/Classes/Students/Components management UI**.
+- Task 18 is implemented; see [academic management progress](2026-10-25-academic-management-progress.md). Next: **Task 19 - Grade entry grid UI**.

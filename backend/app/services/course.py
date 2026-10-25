@@ -53,11 +53,19 @@ async def get_course(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Mata kuliah tidak ditemukan",
         )
-    if not _is_superadmin(current_user) and course.created_by != current_user.id:
+    if (not _is_superadmin(current_user) and course.created_by != current_user.id
+            and not await course_repo.has_assigned_class(db, course.id, current_user.id)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Anda tidak memiliki akses ke mata kuliah ini",
         )
+    return course
+
+
+async def _get_writable_course(db: AsyncSession, course_id: uuid.UUID, current_user: User) -> Course:
+    course = await get_course(db, course_id, current_user)
+    if not _is_superadmin(current_user) and course.created_by != current_user.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Hanya pembuat atau superadmin yang dapat mengubah mata kuliah")
     return course
 
 
@@ -67,7 +75,7 @@ async def update_course(
     payload: CourseUpdate,
     current_user: User,
 ) -> Course:
-    course = await get_course(db, course_id, current_user)
+    course = await _get_writable_course(db, course_id, current_user)
 
     if payload.code is not None and payload.code != course.code:
         existing = await course_repo.get_by_code(db, payload.code)
@@ -100,7 +108,7 @@ async def delete_course(
     course_id: uuid.UUID,
     current_user: User,
 ) -> None:
-    course = await get_course(db, course_id, current_user)
+    course = await _get_writable_course(db, course_id, current_user)
     try:
         await course_repo.delete(db, course)
     except IntegrityError:

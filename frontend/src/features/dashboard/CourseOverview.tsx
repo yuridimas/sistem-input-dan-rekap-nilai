@@ -1,4 +1,5 @@
 import { ChevronDown, GraduationCap } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import type { DashboardCourse } from "./api";
 
@@ -31,6 +32,7 @@ export function CourseOverview({ course, expanded, onToggle }: {
         </button>
       </h3>
       <div aria-labelledby={buttonId} hidden={!expanded} id={panelId} role="region">
+        <div className="border-t border-border px-5 py-3 text-sm"><Link className="font-medium underline underline-offset-4" to={`/courses/${course.id}`}>Buka mata kuliah</Link></div>
         {course.classes.length === 0 ? (
           <p className="border-t border-border px-5 py-5 text-sm text-muted-foreground">Belum ada kelas untuk mata kuliah ini.</p>
         ) : (
@@ -38,7 +40,7 @@ export function CourseOverview({ course, expanded, onToggle }: {
             {course.classes.map((class_) => (
               <li className="flex flex-wrap items-center justify-between gap-3 border-b border-border py-4 outline-none last:border-0 focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring" id={`dashboard-class-${class_.id}`} key={class_.id} tabIndex={-1}>
                 <div className="min-w-0">
-                  <p className="break-words text-sm font-medium">Kelas {class_.section}</p>
+                  <p className="break-words text-sm font-medium"><Link className="underline-offset-4 hover:underline" to={`/classes/${class_.id}`}>Kelas {class_.section}</Link></p>
                   <p className="mt-1 break-words text-xs text-muted-foreground">{class_.academic_year} · {class_.student_count} mahasiswa</p>
                 </div>
                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${class_.status === "released" ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}>

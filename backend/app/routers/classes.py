@@ -40,7 +40,7 @@ async def create_class(
     current_user: User = Depends(_roles),
 ) -> ClassRead:
     class_ = await class_service.create_class(db, payload, current_user)
-    return ClassRead.model_validate(class_)
+    return (await class_service.serialize_classes(db, [class_]))[0]
 
 
 @router.get("", response_model=list[ClassRead])
@@ -49,7 +49,7 @@ async def list_classes(
     current_user: User = Depends(_roles),
 ) -> list[ClassRead]:
     classes = await class_service.list_classes(db, current_user)
-    return [ClassRead.model_validate(class_) for class_ in classes]
+    return await class_service.serialize_classes(db, classes)
 
 
 @router.get("/{class_id}", response_model=ClassRead)
@@ -59,7 +59,7 @@ async def get_class(
     current_user: User = Depends(_roles),
 ) -> ClassRead:
     class_ = await class_service.get_class(db, class_id, current_user)
-    return ClassRead.model_validate(class_)
+    return (await class_service.serialize_classes(db, [class_]))[0]
 
 
 @router.patch("/{class_id}", response_model=ClassRead)
@@ -70,7 +70,7 @@ async def update_class(
     current_user: User = Depends(_roles),
 ) -> ClassRead:
     class_ = await class_service.update_class(db, class_id, payload, current_user)
-    return ClassRead.model_validate(class_)
+    return (await class_service.serialize_classes(db, [class_]))[0]
 
 
 @router.delete("/{class_id}", status_code=status.HTTP_204_NO_CONTENT)

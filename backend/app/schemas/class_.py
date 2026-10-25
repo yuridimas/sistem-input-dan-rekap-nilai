@@ -50,6 +50,7 @@ class ClassRead(BaseModel):
     lecturer_id: uuid.UUID
     academic_year: str
     created_at: datetime
+    has_finalized_grades: bool = False
 
 
 class EnrollmentCreate(BaseModel):

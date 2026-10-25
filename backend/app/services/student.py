@@ -65,7 +65,7 @@ async def update_student(
 
     if payload.full_name is not None:
         student.full_name = payload.full_name
-    if payload.email is not None:
+    if "email" in payload.model_fields_set:
         student.email = payload.email
 
     try:

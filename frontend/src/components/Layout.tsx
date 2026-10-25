@@ -1,5 +1,5 @@
 import { LogOut, Menu } from "lucide-react";
-import { useRef, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/courses": "Mata Kuliah",
   "/users": "Pengguna",
+  "/students": "Mahasiswa",
 };
 
 export function Layout() {
@@ -51,7 +52,7 @@ export function Layout() {
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur sm:px-7">
           <div className="flex items-center gap-3">
             <button aria-label="Buka navigasi" aria-controls="app-sidebar" aria-expanded={menuOpen} className="grid size-9 place-items-center rounded-lg border border-border lg:hidden" onClick={openMenu} ref={menuButtonRef} type="button"><Menu className="size-4" aria-hidden="true" /></button>
-            <div><p className="text-sm font-semibold">{pageTitles[location.pathname] ?? "Ruang kerja"}</p><p className="hidden text-xs text-muted-foreground sm:block">Sistem Input &amp; Rekap Nilai</p></div>
+            <div><p className="text-sm font-semibold">{pageTitles[location.pathname] ?? (location.pathname.startsWith("/courses/") ? "Detail Mata Kuliah" : location.pathname.startsWith("/classes/") ? "Detail Kelas" : "Ruang kerja")}</p><p className="hidden text-xs text-muted-foreground sm:block">Sistem Input &amp; Rekap Nilai</p></div>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden text-right sm:block"><p className="max-w-48 truncate text-sm font-medium">{user.full_name}</p><p className="text-xs text-muted-foreground">{user.email}</p></div>
@@ -59,7 +60,7 @@ export function Layout() {
             <Button aria-label="Keluar" className="size-9" onClick={logout} title="Keluar" type="button" variant="ghost"><LogOut className="size-4" aria-hidden="true" /><span className="sr-only">Keluar</span></Button>
           </div>
         </header>
-        <main className="p-4 sm:p-7 lg:p-9"><Outlet /></main>
+        <main className="p-4 sm:p-7 lg:p-9"><Suspense fallback={<p className="text-sm text-muted-foreground" role="status">Memuat halaman…</p>}><Outlet /></Suspense></main>
       </div>
     </div>
   );

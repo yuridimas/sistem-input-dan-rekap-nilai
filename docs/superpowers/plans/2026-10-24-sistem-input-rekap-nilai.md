@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-**Resume status (2026-10-25):** Tasks 1–17 are implemented. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), [Excel progress](2026-10-25-excel-progress.md), [auth and layout progress](2026-10-25-auth-layout-progress.md), and [dashboard progress](2026-10-25-dashboard-progress.md). Resume with **Task 18**. Original step checkboxes below are retained as the execution template.
+**Resume status (2026-10-25):** Tasks 1–18 are implemented. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), [Excel progress](2026-10-25-excel-progress.md), [auth and layout progress](2026-10-25-auth-layout-progress.md), [dashboard progress](2026-10-25-dashboard-progress.md), and [academic management progress](2026-10-25-academic-management-progress.md). Resume with **Task 19**. Original step checkboxes below are retained as the execution template.
 
 - Version floors: Python 3.11+, Node 20+, PostgreSQL 18, latest major for all libraries — verify installed versions before execution and pin exact majors in lockfiles.
 - Mono repo layout: `backend/` (FastAPI) and `frontend/` (React). All backend paths are under `backend/`, all frontend under `frontend/`.
@@ -380,12 +380,12 @@ async def test_health_ok():
 **Interfaces:**
 - CRUD screens with forms, tables, validation messages (Bahasa). Component editor shows weight sum indicator and enforces UTS/UAS.
 
-- [ ] **Step 1: Implement course list + create/edit dialog.**
-- [ ] **Step 2: Class management + roster enrollment (add by NIM).**
-- [ ] **Step 3: Student list.**
-- [ ] **Step 4: Component editor with live weight sum.**
-- [ ] **Step 5: Verify** manual end-to-end.
-- [ ] **Step 6: Commit**.
+- [x] **Step 1: Implement course list + create/edit dialog.**
+- [x] **Step 2: Class management + roster enrollment (add by NIM).**
+- [x] **Step 3: Student list.**
+- [x] **Step 4: Component editor with live weight sum.**
+- [x] **Step 5: Verify** manual end-to-end.
+- [x] **Step 6: Commit**.
 
 ### Task 19: Grade entry grid UI
 

@@ -6,6 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.class_ import Class
+from app.models.enrollment import Enrollment
+from app.models.grade import Grade, GradeStatus
 
 
 async def get_by_id(db: AsyncSession, class_id: uuid.UUID) -> Class | None:
@@ -58,3 +60,12 @@ async def save(db: AsyncSession, class_: Class) -> Class:
 async def delete(db: AsyncSession, class_: Class) -> None:
     await db.delete(class_)
     await db.commit()
+
+
+async def finalized_class_ids(db: AsyncSession, class_ids: list[uuid.UUID]) -> set[uuid.UUID]:
+    if not class_ids:
+        return set()
+    result = await db.scalars(select(Enrollment.class_id).join(
+        Grade, Grade.enrollment_id == Enrollment.id,
+    ).where(Enrollment.class_id.in_(class_ids), Grade.status == GradeStatus.FINALIZED).distinct())
+    return set(result)

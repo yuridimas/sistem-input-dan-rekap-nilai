@@ -17,7 +17,7 @@ from app.repositories import enrollment as enrollment_repo
 from app.repositories import grades as grade_repo
 from app.repositories import student as student_repo
 from app.repositories import user as user_repo
-from app.schemas.class_ import ClassCreate, ClassUpdate, EnrollmentCreate
+from app.schemas.class_ import ClassCreate, ClassRead, ClassUpdate, EnrollmentCreate
 
 
 def _is_superadmin(user: User) -> bool:
@@ -97,6 +97,13 @@ async def create_class(
 async def list_classes(db: AsyncSession, current_user: User) -> list[Class]:
     lecturer_id = None if _is_superadmin(current_user) else current_user.id
     return await class_repo.list_classes(db, lecturer_id=lecturer_id)
+
+
+async def serialize_classes(db: AsyncSession, classes: list[Class]) -> list[ClassRead]:
+    locked_ids = await class_repo.finalized_class_ids(db, [row.id for row in classes])
+    return [ClassRead.model_validate(row).model_copy(update={
+        "has_finalized_grades": row.id in locked_ids,
+    }) for row in classes]
 
 
 async def get_class(

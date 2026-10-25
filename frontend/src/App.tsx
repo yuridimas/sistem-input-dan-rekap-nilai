@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { Layout } from "@/components/Layout";
@@ -6,6 +7,10 @@ import { PlaceholderPage } from "@/components/PlaceholderPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
+const CoursesPage = lazy(() => import("@/features/courses/CoursesPage").then((module) => ({ default: module.CoursesPage })));
+const CourseDetailPage = lazy(() => import("@/features/courses/CourseDetailPage").then((module) => ({ default: module.CourseDetailPage })));
+const ClassDetailPage = lazy(() => import("@/features/classes/ClassDetailPage").then((module) => ({ default: module.ClassDetailPage })));
+const StudentsPage = lazy(() => import("@/features/students/StudentsPage").then((module) => ({ default: module.StudentsPage })));
 
 const queryClient = new QueryClient();
 
@@ -19,7 +24,10 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/courses" element={<PlaceholderPage title="Mata Kuliah" />} />
+              <Route path="/courses" element={<CoursesPage />} />
+              <Route path="/courses/:courseId" element={<CourseDetailPage />} />
+              <Route path="/classes/:classId" element={<ClassDetailPage />} />
+              <Route path="/students" element={<StudentsPage />} />
               <Route element={<ProtectedRoute allowedRoles={["superadmin"]} />}>
                 <Route path="/users" element={<PlaceholderPage title="Pengguna" />} />
               </Route>

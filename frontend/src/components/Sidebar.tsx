@@ -9,6 +9,7 @@ export function Sidebar({ user, open, onClose }: { user: AuthUser; open: boolean
   const items = [
     { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
     { label: user.role === "superadmin" ? "Semua Mata Kuliah" : "Mata Kuliah Saya", to: "/courses", icon: BookOpen },
+    { label: "Mahasiswa", to: "/students", icon: GraduationCap },
     ...(user.role === "superadmin" ? [{ label: "Pengguna", to: "/users", icon: Users }] : []),
   ];
 
@@ -50,7 +51,7 @@ export function Sidebar({ user, open, onClose }: { user: AuthUser; open: boolean
           {items.map(({ label, to, icon: Icon }) => (
             <NavLink
               className={({ isActive }) => `flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-ring ${isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-              end
+              end={to === "/dashboard"}
               key={to}
               onClick={onClose}
               to={to}
