@@ -36,8 +36,8 @@ Apply migrations from `backend/` using `python -m alembic upgrade head` before s
 
 - **127 backend tests passed**, including 20 new notification/mailer tests; one existing SlowAPI deprecation warning remains.
 - Tests cover mock mode, three fake SMTP transports, content/recipient validation, eager tasks with four failing attempts, duplicate sent/failed messages, concurrent delivery/retries, stale generations, admin permissions/filtering, corrected addresses, durable broker errors, and database comments.
-- A real solo Celery worker processed a message through a memory broker and persisted sent status in PostgreSQL. Docker Desktop and local Redis were unavailable, so live Docker/Redis smoke verification remains pending. No real email was sent.
+- A real solo Celery worker processed a message through a memory broker and persisted sent status in PostgreSQL. Initial Docker/Redis verification was blocked by unavailable services. During Task 14, Docker Desktop was started and a real Redis → Docker worker → PostgreSQL sent timestamp smoke test passed in an isolated disposable environment. No real email was sent.
 - Migration upgrade succeeded through `0008_notification_dispatch`; `alembic check` is clean; Compose configuration validates the worker.
 - Independent review identified a stale-enqueue race. Its deterministic regression failed before token protection and passed afterward. Worker restart policy handles Redis-disconnection exits while preserving bounded publisher retries.
 - References: [Celery task retries](https://docs.celeryq.dev/en/stable/userguide/tasks.html), [SQLAlchemy event loops](https://docs.sqlalchemy.org/en/21/orm/extensions/asyncio.html#using-multiple-asyncio-event-loops).
-- Next implementation: **Task 14 — PDF export (WeasyPrint)**.
+- Task 14 is implemented; see [PDF progress](2026-10-25-pdf-progress.md). Next implementation: **Task 15 — Excel export**.

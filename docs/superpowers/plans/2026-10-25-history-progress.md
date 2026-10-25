@@ -37,4 +37,4 @@ An existing student with no visible finalized grades returns `200 []`. Missing s
 - **107 backend tests passed**, including 11 history tests, with one existing SlowAPI deprecation warning.
 - Tests cover multiple courses/semesters, lecturer/admin visibility, reassignment, draft exclusion, zero scores, missing ranking, result/detail ordering including ties, bounded SELECT queries, request errors, read-only methods, and unchanged history after rejected edits to released data.
 - `alembic check` reports no new upgrade operations; no migration is required.
-- Task 13 is implemented with automated worker verification; see [notification progress and pending Docker/Redis smoke test](2026-10-25-notifications-progress.md). Next implementation: **Task 14 — PDF export**.
+- Tasks 13–14 are implemented; see [notification progress](2026-10-25-notifications-progress.md) and [PDF progress](2026-10-25-pdf-progress.md). Next implementation: **Task 15 — Excel export**.

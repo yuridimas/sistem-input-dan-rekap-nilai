@@ -1,0 +1,13 @@
+{% extends "report_base.html" %}
+{% block title %}Rekap Nilai Kelas{% endblock %}
+{% block content %}
+<p class="muted">Jumlah mahasiswa: {{ report.rows|length }}</p>
+<table>
+  <colgroup><col style="width: 21%"><col style="width: 30%"><col style="width: 17%"><col style="width: 14%"><col style="width: 18%"></colgroup>
+  <thead><tr><th>NIM</th><th>Nama</th><th class="number">Nilai Akhir</th><th class="number">Peringkat</th><th>Status</th></tr></thead>
+  <tbody>{% for row in report.rows %}<tr>
+    <td>{{ row.nim }}</td><td>{{ row.full_name }}</td><td class="number">{{ row.final_score|decimal }}</td>
+    <td class="number">{{ row.rank if row.rank is not none else '—' }}</td><td>{{ 'Tidak lulus' if row.final_score < 45 else 'Lulus' }}</td>
+  </tr>{% endfor %}</tbody>
+</table>
+{% endblock %}

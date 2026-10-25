@@ -1,0 +1,23 @@
+{% extends "report_base.html" %}
+{% block title %}Laporan Nilai Mahasiswa{% endblock %}
+{% block content %}
+{% set row = report.rows[0] %}
+<h2>Identitas Mahasiswa</h2>
+<p><strong>Nama:</strong> {{ row.full_name }}</p>
+<p><strong>NIM:</strong> {{ row.nim }}</p>
+<h2>Rincian Komponen Nilai</h2>
+<table>
+  <colgroup><col style="width: 26%"><col style="width: 16%"><col style="width: 18%"><col style="width: 22%"><col style="width: 18%"></colgroup>
+  <thead><tr><th>Komponen</th><th>Kategori</th><th class="number">Bobot</th><th class="number">Nilai Maksimum</th><th class="number">Skor</th></tr></thead>
+  <tbody>{% for component in report.components %}<tr>
+    <td>{{ component.name }}</td><td>{{ component.category|upper }}</td><td class="number">{{ component.weight|decimal }}%</td>
+    <td class="number">{{ component.max_score|decimal }}</td><td class="number">{{ component.score|decimal }}</td>
+  </tr>{% endfor %}</tbody>
+</table>
+<div class="summary">
+  <p><strong>Nilai akhir:</strong> {{ row.final_score|decimal }}</p>
+  <p><strong>Peringkat kelas:</strong> {{ row.rank if row.rank is not none else '—' }}</p>
+  <p class="status">{{ 'Tidak lulus' if row.final_score < 45 else 'Lulus' }}</p>
+  <p class="muted">Difinalisasi: {{ row.finalized_at|released_at }}</p>
+</div>
+{% endblock %}

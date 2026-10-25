@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Laporan Nilai{% endblock %}</title>
+  <style>
+    @page { size: A4 portrait; margin: 18mm 16mm 20mm; @bottom-center { content: "Halaman " counter(page) " dari " counter(pages); font-size: 9pt; color: #555; } }
+    body { font-family: "DejaVu Sans", sans-serif; font-kerning: none; color: #17212b; font-size: 10pt; line-height: 1.45; }
+    header { border-bottom: 2px solid #23495d; padding-bottom: 10pt; margin-bottom: 14pt; }
+    .institution { color: #23495d; font-weight: bold; font-size: 12pt; margin: 0 0 6pt; overflow-wrap: anywhere; }
+    h1 { font-size: 18pt; margin: 0; } h2 { font-size: 12pt; margin: 18pt 0 8pt; }
+    p { margin: 3pt 0; overflow-wrap: anywhere; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 10pt 0; }
+    thead { display: table-header-group; } tr { break-inside: avoid; }
+    th, td { border-bottom: 1px solid #d6dce0; padding: 7pt 5pt; vertical-align: top; overflow-wrap: anywhere; }
+    th { background: #eaf0f3; text-align: left; font-size: 9pt; }
+    td { font-size: 9pt; } .number { text-align: right; }
+    .metadata { color: #45535e; } .summary { border-top: 2px solid #23495d; padding-top: 9pt; margin-top: 16pt; }
+    .status { font-weight: bold; } .muted { font-size: 9pt; color: #56626c; }
+  </style>
+</head>
+<body>
+  <header>
+    {% if institution_name %}<p class="institution">{{ institution_name }}</p>{% endif %}
+    <h1>{{ self.title() }}</h1>
+  </header>
+  <p><strong>{{ report.course_code }} — {{ report.course_name }}</strong></p>
+  <p class="metadata">Semester {{ report.semester }} · Kelas {{ report.section }} · Tahun akademik {{ report.academic_year }}</p>
+  {% block content %}{% endblock %}
+</body>
+</html>

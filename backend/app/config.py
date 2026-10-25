@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "Sistem Input & Rekap Nilai"
+    institution_name: str = ""
     debug: bool = False
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/grades"
     redis_url: str = "redis://localhost:6379/0"
