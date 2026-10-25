@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -80,7 +81,12 @@ export function StudentsPage() {
               {rows.map((student) => (
                 <TableRow key={student.id}>
                   <TableCell className="max-w-72 whitespace-normal">
-                    <p className="font-medium">{student.full_name}</p>
+                    <Link
+                      className="font-medium underline-offset-4 hover:underline"
+                      to={`/students/${student.id}`}
+                    >
+                      {student.full_name}
+                    </Link>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {student.nim}
                     </p>

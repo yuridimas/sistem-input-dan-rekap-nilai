@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import {
   Link,
   useNavigate,
@@ -22,6 +22,12 @@ import { GradeEntryGrid } from "@/features/grades/GradeEntryGrid";
 import { GradeNavigationGuard } from "@/features/grades/GradeNavigationGuard";
 import { useGradeEntry } from "@/features/grades/hooks";
 
+const ClassAnalyticsPanel = lazy(() =>
+  import("@/features/analytics/ClassAnalyticsPanel").then((module) => ({
+    default: module.ClassAnalyticsPanel,
+  })),
+);
+
 export function ClassDetailPage() {
   const { classId } = useParams();
   return <ClassDetailContent key={classId} />;
@@ -37,7 +43,9 @@ function ClassDetailContent() {
     Boolean(query.data) && !query.error,
   );
   const [dialog, setDialog] = useState<{ deleting?: boolean } | null>(null);
-  const activeTab = ["components", "grades"].includes(params.get("tab") ?? "")
+  const activeTab = ["components", "grades", "analytics"].includes(
+    params.get("tab") ?? "",
+  )
     ? params.get("tab")!
     : "students";
   const grades = useGradeEntry(
@@ -110,6 +118,7 @@ function ClassDetailContent() {
               <TabsTrigger value="students">Mahasiswa</TabsTrigger>
               <TabsTrigger value="components">Komponen Penilaian</TabsTrigger>
               <TabsTrigger value="grades">Nilai</TabsTrigger>
+              <TabsTrigger value="analytics">Analisis</TabsTrigger>
             </TabsList>
             <TabsContent value="students">
               <Roster
@@ -126,6 +135,25 @@ function ClassDetailContent() {
             </TabsContent>
             <TabsContent value="grades">
               <GradeEntryGrid entry={grades} />
+            </TabsContent>
+            <TabsContent value="analytics">
+              <Suspense
+                fallback={
+                  <div
+                    className="h-24 animate-pulse rounded-md border bg-muted/40"
+                    role="status"
+                  >
+                    Memuat analisis…
+                  </div>
+                }
+              >
+                <ClassAnalyticsPanel
+                  classId={data.id}
+                  hasUnsavedChanges={
+                    grades.engine.hasChanges() || grades.snapshot.saving
+                  }
+                />
+              </Suspense>
             </TabsContent>
           </Tabs>
           {dialog && (

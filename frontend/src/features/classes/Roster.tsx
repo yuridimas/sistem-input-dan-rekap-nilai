@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -178,7 +179,12 @@ export function Roster({
               {query.data.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="max-w-64 whitespace-normal">
-                    <p className="font-medium">{row.student.full_name}</p>
+                    <Link
+                      className="font-medium underline-offset-4 hover:underline"
+                      to={`/students/${row.student.id}`}
+                    >
+                      {row.student.full_name}
+                    </Link>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {row.student.nim}
                     </p>

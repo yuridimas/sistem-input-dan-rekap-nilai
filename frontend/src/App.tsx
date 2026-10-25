@@ -33,6 +33,11 @@ const StudentsPage = lazy(() =>
     default: module.StudentsPage,
   })),
 );
+const StudentDetailPage = lazy(() =>
+  import("@/features/analytics/StudentDetailPage").then((module) => ({
+    default: module.StudentDetailPage,
+  })),
+);
 
 const queryClient = new QueryClient();
 
@@ -48,6 +53,7 @@ const router = createBrowserRouter(
           <Route path="/courses/:courseId" element={<CourseDetailPage />} />
           <Route path="/classes/:classId" element={<ClassDetailPage />} />
           <Route path="/students" element={<StudentsPage />} />
+          <Route path="/students/:studentId" element={<StudentDetailPage />} />
           <Route element={<ProtectedRoute allowedRoles={["superadmin"]} />}>
             <Route
               path="/users"

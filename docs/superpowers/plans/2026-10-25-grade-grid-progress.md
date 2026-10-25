@@ -20,4 +20,4 @@ Plan: [Sistem Input & Rekap Nilai](2026-10-24-sistem-input-rekap-nilai.md), Task
 - A fresh review found three races: metadata errors unmounted the draft guard, failed writes cleared a structural pause, and structurally shared post-save data could remain ignored. All three were reproduced with failing tests and fixed; the full frontend suite passed afterward.
 - Real Edge smoke against a disposable backend/database passed delayed-response editing, failed-save retry, comma decimals, range/zero/clearing, exact backend rounding, missing-score focus, dirty navigation, tab retention, structural reload, release locking, uncertain-response checks without duplicate POST, admin/lecturer access, and 320/375px layouts. No runtime exceptions were observed; desktop/mobile screenshots were inspected.
 - Existing user changes to the student router and class tests, untracked AGENTS.md, and egg-info remain outside this task's commit.
-- Next: **Task 20 — Charts (Recharts)**.
+- Task 20 charts are implemented and verified; see [analytics progress](2026-10-26-analytics-progress.md). Next: **Task 21 — Export UI and notification status**.
