@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-**Resume status (2026-10-25):** Tasks 1–15 are implemented. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), and [Excel progress](2026-10-25-excel-progress.md). Resume with **Task 16**. Original step checkboxes below are retained as the execution template.
+**Resume status (2026-10-25):** Tasks 1–16 are implemented. Task 14 passed 140 backend tests with real Linux/Pango PDF rendering; Task 15 passed 143 backend tests including real XLSX workbook parsing. Task 13's Docker/Redis worker smoke check also passed. See [component progress](2026-10-24-components-progress.md), [score entry progress](2026-10-24-scores-progress.md), [finalization progress](2026-10-25-finalization-progress.md), [history progress](2026-10-25-history-progress.md), [notification progress](2026-10-25-notifications-progress.md), [PDF progress](2026-10-25-pdf-progress.md), and [Excel progress](2026-10-25-excel-progress.md), [auth and layout progress](2026-10-25-auth-layout-progress.md). Resume with **Task 17**. Original step checkboxes below are retained as the execution template.
 
 - Version floors: Python 3.11+, Node 20+, PostgreSQL 18, latest major for all libraries — verify installed versions before execution and pin exact majors in lockfiles.
 - Mono repo layout: `backend/` (FastAPI) and `frontend/` (React). All backend paths are under `backend/`, all frontend under `frontend/`.
@@ -353,11 +353,11 @@ async def test_health_ok():
 **Interfaces:**
 - Login form → calls `/auth/login`, stores tokens, redirects to dashboard. Protected routes redirect to /login if no token. Role-based menu (superadmin sees users/courses all; lecturer sees own).
 
-- [ ] **Step 1: Implement auth store** (zustand) with token persistence.
-- [ ] **Step 2: Login page** with form + error display (Bahasa).
-- [ ] **Step 3: ProtectedRoute + layout**.
-- [ ] **Step 4: Verify** manual login flow against backend.
-- [ ] **Step 5: Commit**.
+- [x] **Step 1: Implement auth store** (zustand) with token persistence.
+- [x] **Step 2: Login page** with form + error display (Bahasa).
+- [x] **Step 3: ProtectedRoute + layout**.
+- [x] **Step 4: Verify** manual login flow against backend.
+- [x] **Step 5: Commit**.
 
 ### Task 17: Dashboard
 

@@ -125,9 +125,14 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply min-h-screen bg-background text-foreground antialiased;
   }
   html {
     @apply font-sans;
+  }
+  button,
+  a,
+  input {
+    -webkit-tap-highlight-color: transparent;
   }
 }
