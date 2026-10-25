@@ -16,6 +16,7 @@ from app.models.component import Component
 from app.models.course import Course
 from app.models.enrollment import Enrollment
 from app.models.grade import Grade
+from app.models.notification import Notification
 from app.models.ranking import Ranking
 from app.models.score import Score
 from app.models.student import Student
@@ -67,6 +68,8 @@ async def release_context(monkeypatch):
         async with AsyncSessionLocal() as db:
             await db.execute(delete(Ranking).where(Ranking.class_id == class_id))
             enrollment_ids = select(Enrollment.id).where(Enrollment.class_id == class_id)
+            grade_ids = select(Grade.id).where(Grade.enrollment_id.in_(enrollment_ids))
+            await db.execute(delete(Notification).where(Notification.grade_id.in_(grade_ids)))
             await db.execute(delete(Score).where(Score.enrollment_id.in_(enrollment_ids)))
             await db.execute(delete(Grade).where(Grade.enrollment_id.in_(enrollment_ids)))
             await db.execute(delete(Component).where(Component.class_id == class_id))

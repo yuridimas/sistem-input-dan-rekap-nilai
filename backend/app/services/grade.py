@@ -17,12 +17,14 @@ from app.repositories import enrollment as enrollment_repo
 from app.repositories import grades as grade_repo
 from app.repositories import scores as score_repo
 from app.repositories import ranking as ranking_repo
+from app.repositories import notifications as notification_repo
 from app.schemas.component import ComponentCreate, ComponentRead
 from app.schemas.grades import ClassGradesRead, FinalizeRead, GradeRowRead
 from app.schemas.student import StudentRead
 from app.services.class_ import get_class
 from app.services.component_rules import validate_configuration
 from app.services.release_notifications import publish_grade_releases
+from app.services.notifications import record_enqueue_result
 
 
 def calculate_final_score(components: list[Component], scores: dict[uuid.UUID, Decimal]) -> Decimal:
@@ -124,9 +126,11 @@ async def finalize_class(db: AsyncSession, class_id: uuid.UUID, user: User) -> F
         await db.flush()
         await ranking_repo.create_for_class(db, class_id, finalized_at)
         grade_ids = [grades[enrollment.id].id for enrollment, _student in roster]
+        dispatch_tokens = notification_repo.add_releases(db, [(grades[enrollment.id].id, student.email) for enrollment, student in roster])
         await db.commit()
     except IntegrityError:
         await db.rollback()
         raise HTTPException(409, "Finalisasi gagal karena data kelas telah berubah")
     notified = await publish_grade_releases(grade_ids)
+    await record_enqueue_result(db, grade_ids, notified, dispatch_tokens)
     return FinalizeRead(finalized_count=len(grade_ids), notified=notified)
