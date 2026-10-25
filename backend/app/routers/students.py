@@ -48,7 +48,7 @@ async def update_student(
     student_id: uuid.UUID,
     payload: StudentUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role("superadmin", "lecturer")),
+    current_user: User = Depends(require_role("superadmin")),
 ) -> StudentRead:
     student = await student_service.update_student(db, student_id, payload)
     return StudentRead.model_validate(student)
@@ -58,7 +58,7 @@ async def update_student(
 async def delete_student(
     student_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role("superadmin", "lecturer")),
+    current_user: User = Depends(require_role("superadmin")),
 ) -> Response:
     await student_service.delete_student(db, student_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

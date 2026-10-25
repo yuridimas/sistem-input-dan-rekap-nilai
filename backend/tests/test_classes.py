@@ -235,10 +235,23 @@ async def test_class_enrollment_roster_and_delete_flow():
         assert enrollment_c["student"]["full_name"] == nim2
         assert enrollment_c["student"]["email"] is None
 
-        # A student who is still enrolled cannot be deleted -> 409
+        # Lecturers cannot change shared student records.
+        r = await c.patch(
+            f"/students/{enrollment_c['student']['id']}",
+            headers=headers,
+            json={"full_name": "Nama baru"},
+        )
+        assert r.status_code == 403, r.text
         r = await c.delete(
             f"/students/{enrollment_c['student']['id']}",
             headers=headers,
+        )
+        assert r.status_code == 403, r.text
+
+        # An admin cannot delete a student who is still enrolled -> 409
+        r = await c.delete(
+            f"/students/{enrollment_c['student']['id']}",
+            headers=admin_headers,
         )
         assert r.status_code == 409, r.text
 
@@ -250,7 +263,7 @@ async def test_class_enrollment_roster_and_delete_flow():
         assert r.status_code == 204, r.text
         r = await c.delete(
             f"/students/{enrollment_c['student']['id']}",
-            headers=headers,
+            headers=admin_headers,
         )
         assert r.status_code == 204, r.text
 
