@@ -1,4 +1,10 @@
-"""Atomically validate, save scores, and update the draft final grade."""
+"""Atomically validate, save scores, and update the draft final grade.
+
+Penyimpanan perubahan skor parsial untuk router scores.
+
+Lock kelas menyelaraskan penyimpanan dengan perubahan komponen dan
+finalisasi.
+"""
 
 import uuid
 from decimal import Decimal
@@ -21,6 +27,19 @@ from app.services.grade import calculate_final_score
 async def save_scores(
     db: AsyncSession, enrollment_id: uuid.UUID, values: dict[uuid.UUID, Decimal | None], user: User,
 ) -> Grade:
+    """Simpan patch skor dan total draft dalam satu transaksi.
+
+    Lock/commit; HTTPException 403/404 akses, 409 final/konflik, 422
+    skor/komponen invalid.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        enrollment_id: UUID keikutsertaan mahasiswa pada satu kelas.
+        values: Patch skor Decimal; None menghapus dan key absen
+            dipertahankan.
+        user: Objek akun untuk pemeriksaan akses atau persistence sesuai
+            operasi.
+    """
     enrollment = await score_repo.get_enrollment(db, enrollment_id)
     if enrollment is None:
         raise HTTPException(404, "Pendaftaran mahasiswa tidak ditemukan")
@@ -46,6 +65,7 @@ async def save_scores(
         if value is not None and (value < 0 or value > by_id[component_id].max_score):
             raise HTTPException(422, "Nilai harus antara nol dan nilai maksimum komponen")
     try:
+        # None menghapus skor; nol adalah nilai sah. ID yang tidak dikirim tidak diubah.
         await score_repo.clear(db, enrollment_id, [key for key, value in values.items() if value is None])
         await score_repo.upsert(db, enrollment_id, {key: value for key, value in values.items() if value is not None}, user.id)
         scores = {row.component_id: row.score for row in await score_repo.list_by_enrollment(db, enrollment_id)}

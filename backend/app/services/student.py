@@ -1,4 +1,9 @@
-"""Business logic for student management."""
+"""Business logic for student management.
+
+Aturan pengelolaan mahasiswa untuk router students.
+
+Service menerjemahkan konflik NIM; repository menangani persistence.
+"""
 
 import uuid
 
@@ -12,6 +17,18 @@ from app.schemas.student import StudentCreate, StudentUpdate
 
 
 async def create_student(db: AsyncSession, payload: StudentCreate) -> Student:
+    """Cegah NIM ganda sebelum membuat data mahasiswa.
+
+    Commit DB.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        payload: Data masukan yang sudah melewati validasi schema
+            endpoint.
+
+    Raises:
+        HTTPException: 409 untuk identitas duplikat.
+    """
     existing = await student_repo.get_by_nim(db, payload.nim)
     if existing is not None:
         raise HTTPException(
@@ -34,10 +51,31 @@ async def create_student(db: AsyncSession, payload: StudentCreate) -> Student:
 
 
 async def list_students(db: AsyncSession) -> list[Student]:
+    """Sediakan daftar mahasiswa untuk pengelolaan router terkait.
+
+    Hanya membaca DB dengan filter repository.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+
+    Returns:
+        Daftar bisa kosong.
+    """
     return await student_repo.list_students(db)
 
 
 async def get_student(db: AsyncSession, student_id: uuid.UUID) -> Student:
+    """Pastikan data mahasiswa ada sebelum proses lanjutan.
+
+    Hanya membaca DB.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        student_id: UUID profil mahasiswa, bukan UUID enrollment.
+
+    Raises:
+        HTTPException: 404 jika absen.
+    """
     student = await student_repo.get_by_id(db, student_id)
     if student is None:
         raise HTTPException(
@@ -52,6 +90,19 @@ async def update_student(
     student_id: uuid.UUID,
     payload: StudentUpdate,
 ) -> Student:
+    """Terapkan perubahan parsial mahasiswa sesuai field yang dikirim.
+
+    Commit DB.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        student_id: UUID profil mahasiswa, bukan UUID enrollment.
+        payload: Data masukan yang sudah melewati validasi schema
+            endpoint.
+
+    Raises:
+        HTTPException: 404 jika absen atau 409 identitas duplikat.
+    """
     student = await get_student(db, student_id)
 
     if payload.nim is not None and payload.nim != student.nim:
@@ -65,6 +116,7 @@ async def update_student(
 
     if payload.full_name is not None:
         student.full_name = payload.full_name
+    # Null yang dikirim sengaja menghapus email; field absen mempertahankan nilai lama.
     if "email" in payload.model_fields_set:
         student.email = payload.email
 
@@ -79,6 +131,17 @@ async def update_student(
 
 
 async def delete_student(db: AsyncSession, student_id: uuid.UUID) -> None:
+    """Pertahankan integritas roster ketika menghapus mahasiswa.
+
+    Commit DB.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        student_id: UUID profil mahasiswa, bukan UUID enrollment.
+
+    Raises:
+        HTTPException: 404 jika absen atau 409 jika masih terdaftar.
+    """
     student = await get_student(db, student_id)
     try:
         await student_repo.delete(db, student)

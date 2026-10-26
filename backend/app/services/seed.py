@@ -1,4 +1,9 @@
-"""Seed helpers (idempotent)."""
+"""Seed helpers (idempotent).
+
+Bootstrap akun superadmin dari konfigurasi saat startup main.
+
+Session opsional memudahkan pengujian tanpa membuat koneksi tersendiri.
+"""
 
 import bcrypt
 from sqlalchemy import select
@@ -10,7 +15,19 @@ from app.models.user import User, UserRole
 
 
 async def seed_superadmin(session: AsyncSession | None = None) -> User | None:
-    """Create the superadmin account from env if none exists (idempotent)."""
+    """Buat akun awal jika konfigurasi tersedia dan email belum ada.
+
+    Create the superadmin account from env if none exists (idempotent).
+
+    Commit saat insert, tutup hanya session milik sendiri.
+
+    Args:
+        session: Session opsional; None membuat session yang ditutup
+            sendiri.
+
+    Returns:
+        None jika konfigurasi kosong.
+    """
     settings = get_settings()
     email = settings.superadmin_email
     password = settings.superadmin_password
