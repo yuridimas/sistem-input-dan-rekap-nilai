@@ -1,3 +1,7 @@
+/**
+ * Client Axios bersama untuk seluruh API dengan bearer token dan refresh sesi.
+ * Menggabungkan kegagalan 401 bersamaan agar rotasi refresh token hanya terjadi sekali.
+ */
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 import { useAuthStore } from "@/stores/authStore";
@@ -9,11 +13,17 @@ export const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+/**
+ * Hasil rotasi yang menggantikan kedua token pada auth store.
+ */
 interface TokenPair {
   access_token: string;
   refresh_token: string;
 }
 
+/**
+ * Tanda retry internal mencegah request yang tetap 401 berulang tanpa batas.
+ */
 interface RetryableRequest extends InternalAxiosRequestConfig {
   _authRetry?: boolean;
 }
@@ -34,6 +44,7 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const request = error.config as RetryableRequest | undefined;
     const path = request?.url ?? "";
+    // Cocokkan login/refresh hingga query atau akhir path agar refresh tidak rekursif.
     const isLoginOrRefresh = /\/auth\/(login|refresh)(?:\?|$)/.test(path);
 
     if (error.response?.status !== 401 || !request || request._authRetry || isLoginOrRefresh) {
@@ -48,6 +59,7 @@ api.interceptors.response.use(
 
     request._authRetry = true;
     try {
+      // Semua 401 berbagi promise karena refresh token lama dicabut setelah rotasi.
       refreshRequest ??= axios
         .post<TokenPair>(`${baseURL}/auth/refresh`, { refresh_token: refreshToken })
         .then(({ data }) => data)

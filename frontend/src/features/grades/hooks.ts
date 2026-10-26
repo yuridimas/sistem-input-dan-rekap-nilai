@@ -1,3 +1,7 @@
+/**
+ * Koordinasi React Query dan GradeDraft untuk editor serta dialog finalisasi.
+ * Hook menahan edit ketika menyiapkan rilis dan memulihkan status jika hasil request tidak pasti.
+ */
 import {
   useEffect,
   useMemo,
@@ -19,6 +23,11 @@ import type {
   SavedGrade,
 } from "./types";
 
+/**
+ * Daftarkan sel tanpa entri skor untuk fokus/validasi dialog; nilai nol tetap dianggap
+ * terisi.
+ * @param data Snapshot grid server. @returns Daftar sel kosong, bisa kosong.
+ */
 export function missingCells(data: GradeGrid) {
   return data.grades.flatMap((row) =>
     data.components.flatMap((component) =>
@@ -35,6 +44,10 @@ export function missingCells(data: GradeGrid) {
     ),
   );
 }
+/**
+ * Cek kesiapan editor dengan bobot dalam satuan seperseratus persen.
+ * @returns boolean; validasi ini membantu UI, keputusan final tetap dilakukan backend.
+ */
 export function configurationValid(data: GradeGrid) {
   return (
     data.components.length > 0 &&
@@ -44,12 +57,18 @@ export function configurationValid(data: GradeGrid) {
     data.components.reduce(
       (sum, row) => sum + Math.round(Number(row.weight) * 100),
       0,
+    // 100 persen dikali 100 menghindari perbandingan jumlah float desimal secara langsung.
     ) === 10000 &&
     data.components.some((row) => row.category === "uts") &&
     data.components.some((row) => row.category === "uas")
   );
 }
 
+/**
+ * Hubungkan engine draft dengan snapshot server per pengguna dan kelas.
+ * @param classId UUID kelas; enabled mengaktifkan query awal saat tab diperlukan.
+ * @returns State/aksi editor; efek mencakup HTTP save/finalisasi dan invalidasi cache.
+ */
 export function useGradeEntry(classId: string, enabled: boolean) {
   const client = useQueryClient();
   const { user, hasTokens } = useAuth();
@@ -114,12 +133,20 @@ export function useGradeEntry(classId: string, enabled: boolean) {
     if (query.data) engine.receive(query.data);
   }, [engine, query.data]);
 
+  /**
+   * Refetch snapshot dan kirimkan ke engine sebelum keputusan finalisasi.
+   * @returns Promise grid; melempar error query atau error ketika data belum tersedia.
+   */
   async function fresh() {
     const result = await query.refetch({ throwOnError: true });
     if (!result.data) throw new Error("Data nilai belum tersedia.");
     engine.receive(result.data);
     return result.data;
   }
+  /**
+   * Segarkan grid/ranking/history dan dashboard setelah status rilis berubah.
+   * @returns Promise seluruh invalidasi; tidak menulis langsung data server.
+   */
   async function invalidate() {
     await Promise.all([
       client.invalidateQueries({ queryKey: ["academic", user?.id] }),
@@ -128,6 +155,10 @@ export function useGradeEntry(classId: string, enabled: boolean) {
       }),
     ]);
   }
+  /**
+   * Buang draft lokal lewat reload eksplisit ketika tidak ada save yang sedang berjalan.
+   * @returns boolean sukses; kegagalan dicatat pada actionError.
+   */
   async function reload() {
     if (engine.getSnapshot().saving) return false;
     try {
@@ -139,6 +170,10 @@ export function useGradeEntry(classId: string, enabled: boolean) {
       return false;
     }
   }
+  /**
+   * Bekukan edit dan tunggu flush sebelum membuka konfirmasi rilis.
+   * Jika validasi gagal, tampilkan error dan buka kembali editor; tidak memanggil finalize.
+   */
   async function prepare() {
     if (engine.getSnapshot().frozen || engine.getSnapshot().paused) return;
     engine.setFrozen(true);
@@ -173,6 +208,9 @@ export function useGradeEntry(classId: string, enabled: boolean) {
       setPreparing(false);
     }
   }
+  /**
+   * Buka kembali editor ketika konfirmasi dibatalkan; abaikan selama finalisasi berjalan.
+   */
   function closeDialog() {
     if (finalizeBusy.current) return;
     setDialogOpen(false);
@@ -180,6 +218,10 @@ export function useGradeEntry(classId: string, enabled: boolean) {
     setServerMissing([]);
     setActionError(null);
   }
+  /**
+   * Periksa snapshot terbaru sebelum POST agar rilis paralel tidak dipicu ulang.
+   * Error tanpa kepastian hasil mempertahankan lock UI sampai status server diperiksa.
+   */
   async function confirm() {
     if (finalizeBusy.current || !dialogOpen) return;
     finalizeBusy.current = true;
@@ -226,6 +268,7 @@ export function useGradeEntry(classId: string, enabled: boolean) {
         } catch {
           /* Retain the server's missing-score response. */
         }
+      // Timeout/5xx tidak membuktikan rollback; periksa hasil rilis sebelum menawarkan retry.
       } else if (!status || status >= 500) {
         setUncertain(true);
         setDialogOpen(false);
@@ -243,6 +286,11 @@ export function useGradeEntry(classId: string, enabled: boolean) {
       setFinalizing(false);
     }
   }
+  /**
+   * Rekonsiliasi hasil rilis yang tidak pasti melalui GET sebelum mengizinkan percobaan
+   * lain.
+   * Menyegarkan cache dan state UI; kegagalan tetap tampil sebagai actionError.
+   */
   async function checkRelease() {
     setPreparing(true);
     try {
@@ -284,4 +332,7 @@ export function useGradeEntry(classId: string, enabled: boolean) {
   };
 }
 
+/**
+ * Kontrak state/aksi hook yang dibagikan grid dan guard navigasi.
+ */
 export type GradeEntry = ReturnType<typeof useGradeEntry>;

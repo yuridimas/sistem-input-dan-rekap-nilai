@@ -1,3 +1,7 @@
+/**
+ * Penghubung profil /auth/me, React Query, dan state sesi persisten.
+ * Dipakai guard, layout, serta halaman yang memerlukan role/identitas pengguna.
+ */
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -6,11 +10,19 @@ import { useAuthStore, type AuthUser } from "@/stores/authStore";
 
 export const authQueryKey = ["auth", "me"] as const;
 
+/**
+ * Muat profil sesi aktif menggunakan client dengan mekanisme refresh bersama.
+ * @returns Promise<AuthUser>; kegagalan HTTP diteruskan ke React Query.
+ */
 export async function fetchCurrentUser() {
   const { data } = await api.get<AuthUser>("/auth/me");
   return data;
 }
 
+/**
+ * Tunggu hidrasi token sebelum memuat profil agar guard tidak mengalihkan terlalu awal.
+ * @returns Profil/state loading/error dan refetch; efek menyelaraskan profil ke Zustand.
+ */
 export function useAuth() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const refreshToken = useAuthStore((state) => state.refreshToken);
