@@ -1,3 +1,7 @@
+/**
+ * Integration test halaman analytics dengan API palsu dan router/cache terisolasi.
+ * Fokus pada pemilihan populasi, state query, dan akses data/tabel tanpa backend nyata.
+ */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -28,6 +32,9 @@ const grid: GradeGrid = {
   ],
 };
 
+/**
+ * Pasang halaman pada memory router dan QueryClient baru agar cache tidak bocor antar-test.
+ */
 function mount(element: React.ReactNode, route = "/") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   const router = createMemoryRouter([

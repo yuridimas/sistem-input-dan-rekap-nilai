@@ -1,3 +1,7 @@
+/**
+ * Integration test grid, hook, dan guard navigasi dengan server API palsu.
+ * Urutan save/finalisasi serta perpindahan tab diuji dari perilaku pengguna, bukan DB nyata.
+ */
 import {
   act,
   fireEvent,
@@ -64,6 +68,9 @@ const saved: SavedGrade = {
   final_score: "40",
   status: "draft",
 };
+/**
+ * Pertahankan hook ketika panel tab berubah agar test dapat mendeteksi draft yang hilang.
+ */
 function Harness() {
   const [params] = useSearchParams();
   const entry = useGradeEntry("class", true);
@@ -81,6 +88,9 @@ function Harness() {
     </>
   );
 }
+/**
+ * Pasang router dan cache baru agar navigasi serta pending request terisolasi per skenario.
+ */
 function mount() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },

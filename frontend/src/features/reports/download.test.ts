@@ -1,3 +1,7 @@
+/**
+ * Unit test unduhan laporan dengan Blob dan API/DOM yang dikendalikan test.
+ * Tidak mengunduh file nyata; kontrak filename, cleanup object URL, dan error Blob diperiksa.
+ */
 import { waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 

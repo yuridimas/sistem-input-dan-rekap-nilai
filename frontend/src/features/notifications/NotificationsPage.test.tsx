@@ -1,3 +1,7 @@
+/**
+ * Integration test audit/retry notifikasi dan pembatasan role dengan API palsu.
+ * Status antrean diperiksa terpisah dari sukses kirim agar UI tidak memberi konfirmasi palsu.
+ */
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -20,6 +24,9 @@ const notifications = [
 ];
 const queuedNotification = { ...notifications[0], status: "queued" as const, error_message: null };
 
+/**
+ * Simulasikan filter status server agar request dan pergantian isi tabel dapat diperiksa.
+ */
 function mockNotificationList() {
   vi.mocked(api.get).mockImplementation(async (_path, config) => {
     const status = (config?.params as { status?: string } | undefined)?.status;
@@ -34,6 +41,9 @@ function mockNotificationList() {
   });
 }
 
+/**
+ * Pasang guard superadmin pada memory router dengan cache baru untuk tiap skenario.
+ */
 function mount() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   const router = createMemoryRouter([

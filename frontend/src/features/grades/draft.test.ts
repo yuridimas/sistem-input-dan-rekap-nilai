@@ -1,3 +1,7 @@
+/**
+ * Unit test engine draft tanpa React atau backend untuk race respons dan serialisasi save.
+ * Promise terkontrol memungkinkan edit baru diuji ketika request lama masih tertunda.
+ */
 import { describe, expect, it, vi } from "vitest";
 import { GradeDraft, GradeSaveError, cellKey, validateScore } from "./draft";
 import type { GradeGrid, SavedGrade } from "./types";
@@ -32,11 +36,17 @@ export const grid: GradeGrid = {
     },
   ],
 };
+/**
+ * Bentuk acknowledgement satu enrollment agar total hasil server dapat divariasikan.
+ */
 const saved = (score = "40"): SavedGrade => ({
   enrollment_id: "e1",
   final_score: score,
   status: "draft",
 });
+/**
+ * Ekspos resolve/reject agar test menentukan urutan respons tanpa mengandalkan timer jaringan.
+ */
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (error: Error) => void;

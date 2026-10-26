@@ -1,3 +1,7 @@
+/**
+ * Unit test transformasi analytics tanpa DOM chart atau request jaringan.
+ * Kasus batas interval dan komponen tidak lengkap menjaga grafik tidak menyesatkan pembaca.
+ */
 import { describe, expect, it } from "vitest";
 
 import type { GradeGrid } from "@/features/grades/types";
@@ -15,6 +19,9 @@ const components: GradeGrid["components"] = [
   { id: "final", name: "UAS", category: "uas", weight: "40", max_score: "80", order_index: 3 },
 ];
 
+/**
+ * Bangun snapshot dengan komponen lintas maksimum; override baris memicu edge case transformasi.
+ */
 function grid(overrides: Partial<GradeGrid["grades"][number]>[] = []): GradeGrid {
   return {
     class_id: "class-1",
