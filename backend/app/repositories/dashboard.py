@@ -1,4 +1,12 @@
-"""Batched dashboard reads; aggregate before joining courses and classes."""
+"""Query agregasi dashboard sebelum join mata kuliah dan kelas.
+
+Batched dashboard reads; aggregate before joining courses and classes.
+
+Query dan persistence agregasi dashboard bagi service terkait.
+
+Commit/rollback dimiliki service; error database diteruskan kecuali
+disebutkan.
+"""
 
 import uuid
 
@@ -12,6 +20,17 @@ from app.models.grade import Grade, GradeStatus
 
 
 async def list_summary_rows(db: AsyncSession, lecturer_id: uuid.UUID | None) -> list[RowMapping]:
+    """Agregasikan roster/nilai sebelum join dashboard.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        lecturer_id: UUID dosen penugasan; None membuka ringkasan
+            superadmin.
+
+    Returns:
+        Baris agregat per mata kuliah/kelas; kelas kosong tetap
+        terwakili melalui outer join.
+    """
     counts = (
         select(
             Enrollment.class_id,

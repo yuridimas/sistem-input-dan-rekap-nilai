@@ -1,4 +1,11 @@
-"""Database access for classes."""
+"""Database access for classes.
+
+Akses persistence kelas untuk service terkait; otorisasi berada di
+service/router.
+
+Operasi add/save/delete di modul ini melakukan commit; pembacaan tidak
+mengubah data.
+"""
 
 import uuid
 
@@ -11,6 +18,12 @@ from app.models.grade import Grade, GradeStatus
 
 
 async def get_by_id(db: AsyncSession, class_id: uuid.UUID) -> Class | None:
+    """Cari kelas dari UUID tanpa otorisasi.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        class_id: UUID kelas yang menjadi cakupan operasi.
+    """
     result = await db.execute(select(Class).where(Class.id == class_id))
     return result.scalar_one_or_none()
 
@@ -22,6 +35,18 @@ async def get_by_unique(
     academic_year: str,
     exclude_id: uuid.UUID | None = None,
 ) -> Class | None:
+    """Cari konflik kombinasi mata kuliah, seksi, dan tahun.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        course_id: UUID mata kuliah yang menjadi sasaran operasi.
+        section: Seksi kelas yang membedakan penyelenggaraan mata
+            kuliah.
+        academic_year: Tahun akademik yang membedakan penyelenggaraan
+            kelas.
+        exclude_id: UUID baris yang diabaikan saat memeriksa konflik
+            pembaruan.
+    """
     stmt = select(Class).where(
         Class.course_id == course_id,
         Class.section == section,
@@ -37,6 +62,12 @@ async def list_classes(
     db: AsyncSession,
     lecturer_id: uuid.UUID | None = None,
 ) -> list[Class]:
+    """Baca kelas terbaru sesuai filter dosen opsional.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        lecturer_id: UUID pemilik kelas; None meniadakan filter dosen.
+    """
     stmt = select(Class).order_by(Class.created_at.desc())
     if lecturer_id is not None:
         stmt = stmt.where(Class.lecturer_id == lecturer_id)
@@ -45,6 +76,14 @@ async def list_classes(
 
 
 async def add(db: AsyncSession, class_: Class) -> Class:
+    """Simpan kelas baru dan muat default database.
+
+    Commit/refresh DB; error constraint diteruskan ke service.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        class_: Objek kelas yang sudah dimuat oleh pemanggil.
+    """
     db.add(class_)
     await db.commit()
     await db.refresh(class_)
@@ -52,17 +91,39 @@ async def add(db: AsyncSession, class_: Class) -> Class:
 
 
 async def save(db: AsyncSession, class_: Class) -> Class:
+    """Simpan perubahan kelas yang sudah dilacak session.
+
+    Commit/refresh DB; error constraint diteruskan ke service.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        class_: Objek kelas yang sudah dimuat oleh pemanggil.
+    """
     await db.commit()
     await db.refresh(class_)
     return class_
 
 
 async def delete(db: AsyncSession, class_: Class) -> None:
+    """Hapus kelas dengan proteksi constraint relasi.
+
+    Commit DB; IntegrityError diterjemahkan oleh service.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        class_: Objek kelas yang sudah dimuat oleh pemanggil.
+    """
     await db.delete(class_)
     await db.commit()
 
 
 async def finalized_class_ids(db: AsyncSession, class_ids: list[uuid.UUID]) -> set[uuid.UUID]:
+    """Ambil ID kelas yang mempunyai minimal satu nilai final.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        class_ids: UUID kelas yang diperiksa secara batch; boleh kosong.
+    """
     if not class_ids:
         return set()
     result = await db.scalars(select(Enrollment.class_id).join(
