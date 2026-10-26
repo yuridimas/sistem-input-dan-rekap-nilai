@@ -1,8 +1,15 @@
+/**
+ * Kelompok mata kuliah yang dapat dibuka pada DashboardPage.
+ * Props expanded/onToggle dikendalikan parent untuk satu pilihan ekspansi aktif.
+ */
 import { ChevronDown, GraduationCap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import type { DashboardCourse } from "./api";
 
+/**
+ * Sajikan kelas dan status rilis dari summary tanpa query tambahan per mata kuliah.
+ */
 export function CourseOverview({ course, expanded, onToggle }: {
   course: DashboardCourse;
   expanded: boolean;

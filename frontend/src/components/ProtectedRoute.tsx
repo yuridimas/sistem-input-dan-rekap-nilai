@@ -1,3 +1,7 @@
+/**
+ * Guard route yang memakai useAuth untuk menunggu hidrasi dan validasi sesi.
+ * Dipakai App pada seluruh halaman internal serta kelompok route superadmin.
+ */
 import { RefreshCw } from "lucide-react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
@@ -5,6 +9,12 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
 import type { UserRole } from "@/stores/authStore";
 
+/**
+ * Simpan lokasi tujuan saat menuju login dan tampilkan retry ketika profil belum dapat
+ * dimuat.
+ * @param allowedRoles Filter role opsional; tanpa filter cukup memiliki profil sesi.
+ * @returns Outlet, pengalihan, status/error sesi, atau null saat profil belum tersedia.
+ */
 export function ProtectedRoute({ allowedRoles }: { allowedRoles?: UserRole[] }) {
   const location = useLocation();
   const { user, hasTokens, isLoading, error, retry } = useAuth();

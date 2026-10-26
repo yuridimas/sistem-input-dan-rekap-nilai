@@ -1,3 +1,7 @@
+/**
+ * Warna/label kategori bersama untuk chart dan legenda.
+ * Menggunakan tipe kategori dari data analytics agar tampilan tidak memiliki kategori terpisah.
+ */
 import type { ScoreCategory } from "./data";
 
 export const CATEGORY_COLORS: Record<ScoreCategory, string> = {

@@ -1,3 +1,7 @@
+/**
+ * Shell halaman terlindungi yang dipasang router App.
+ * Menampung sidebar responsif, profil sesi, dan Suspense untuk halaman lazy.
+ */
 import { LogOut, Menu } from "lucide-react";
 import { Suspense, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -17,6 +21,9 @@ const pageTitles: Record<string, string> = {
   "/students": "Mahasiswa",
 };
 
+/**
+ * Sajikan shell hanya ketika profil tersedia; Outlet memasang halaman yang sedang aktif.
+ */
 export function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useAuth();
@@ -28,17 +35,28 @@ export function Layout() {
 
   if (!user) return null;
 
+  /**
+   * Hapus token/profil sesi dan cache auth lalu ganti route ke login.
+   * Efek: Zustand/storage, React Query, dan history browser; tidak memanggil endpoint
+   * logout.
+   */
   function logout() {
     clear();
     queryClient.removeQueries({ queryKey: ["auth"] });
     navigate("/login", { replace: true });
   }
 
+  /**
+   * Tutup sidebar mobile dan kembalikan fokus ke tombol pembuka.
+   */
   function closeMenu() {
     setMenuOpen(false);
     menuButtonRef.current?.focus();
   }
 
+  /**
+   * Mount sidebar secara sinkron sebelum menunda fokus hingga elemen tombol tersedia.
+   */
   function openMenu() {
     flushSync(() => setMenuOpen(true));
     window.setTimeout(() => document.getElementById("close-sidebar")?.focus(), 50);

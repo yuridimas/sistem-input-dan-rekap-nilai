@@ -1,3 +1,7 @@
+/**
+ * Ringkasan akademik dan rilis terbaru bagi admin maupun dosen.
+ * Memakai satu query summary dan membuka baris kelas dari tindakan rilis terbaru.
+ */
 import { ArrowUpRight, BookOpen, CheckCheck, Clock3, Layers } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -8,12 +12,18 @@ import { useDashboard } from "./api";
 
 const releaseDate = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" });
 
+/**
+ * Fokus/gulir baris kelas dengan menghormati prefers-reduced-motion pengguna.
+ */
 function focusClassRow(classId: string) {
   const target = document.getElementById(`dashboard-class-${classId}`);
   target?.focus({ preventScroll: true });
   target?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
 }
 
+/**
+ * Sajikan ringkasan role pengguna serta state loading/error dan ekspansi mata kuliah.
+ */
 export function DashboardPage() {
   const { user } = useAuth();
   const { data, isPending, isError, isFetching, refetch } = useDashboard(user?.id);
@@ -27,6 +37,9 @@ export function DashboardPage() {
     }
   }, [expandedCourse]);
 
+  /**
+   * Buka kelompok mata kuliah sebelum memfokuskan kelas jika barisnya belum terpasang.
+   */
   function openRelease(courseId: string, classId: string) {
     if (expandedCourse === courseId) {
       focusClassRow(classId);

@@ -1,3 +1,7 @@
+/**
+ * Halaman kelas yang merangkai roster, komponen, grid nilai, analytics, dan laporan.
+ * Query tab disimpan di URL; hook nilai dipertahankan saat pengguna berpindah tab.
+ */
 import { lazy, Suspense, useState } from "react";
 import {
   Link,
@@ -29,11 +33,17 @@ const ClassAnalyticsPanel = lazy(() =>
   })),
 );
 
+/**
+ * Gunakan key UUID kelas agar draft/lifecycle editor direset ketika berpindah kelas.
+ */
 export function ClassDetailPage() {
   const { classId } = useParams();
   return <ClassDetailContent key={classId} />;
 }
 
+/**
+ * Muat konteks kelas/mata kuliah sebelum konten; guard tetap memantau pekerjaan penilaian.
+ */
 function ClassDetailContent() {
   const { classId } = useParams();
   const [params, setParams] = useSearchParams();

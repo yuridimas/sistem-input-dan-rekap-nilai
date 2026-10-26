@@ -1,9 +1,16 @@
+/**
+ * Navigasi bersama untuk Layout; item administratif mengikuti role profil sesi.
+ * Batas tampilan menu melengkapi guard UI, sedangkan otorisasi tetap dilakukan backend.
+ */
 import { Bell, BookOpen, GraduationCap, LayoutDashboard, Users, X } from "lucide-react";
 import { useRef, type KeyboardEvent } from "react";
 import { NavLink } from "react-router-dom";
 
 import type { AuthUser } from "@/stores/authStore";
 
+/**
+ * Render navigasi desktop/mobile; onClose mengembalikan kendali fokus kepada Layout.
+ */
 export function Sidebar({ user, open, onClose }: { user: AuthUser; open: boolean; onClose: () => void }) {
   const sidebarRef = useRef<HTMLElement>(null);
   const items = [
@@ -14,6 +21,10 @@ export function Sidebar({ user, open, onClose }: { user: AuthUser; open: boolean
     ...(user.role === "superadmin" ? [{ label: "Notifikasi", to: "/notifications", icon: Bell }] : []),
   ];
 
+  /**
+   * Tahan siklus Tab di sidebar yang terbuka dan tutup lewat Escape.
+   * Efek: fokus DOM; ketika sidebar tertutup, navigasi keyboard tidak dicegat.
+   */
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (!open) return;
     if (event.key === "Escape") {

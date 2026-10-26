@@ -1,14 +1,30 @@
+/**
+ * Transformasi murni snapshot nilai untuk chart kelas dan tren mahasiswa.
+ * Hanya untuk visualisasi; hasil kalkulasi resmi tetap berasal dari backend Decimal.
+ */
 import type { GradeComponent } from "@/features/academic/api";
 import type { GradeGrid } from "@/features/grades/types";
 
+/**
+ * Pisahkan populasi final dan draft lengkap agar grafik tidak mencampur status.
+ */
 export type AnalyticsMode = "finalized" | "draft";
+/**
+ * Gunakan kategori yang sama dengan konfigurasi komponen API.
+ */
 export type ScoreCategory = GradeComponent["category"];
 
+/**
+ * Label interval dan jumlah mahasiswa untuk chart serta tabel alternatif.
+ */
 export interface DistributionBucket {
   label: string;
   count: number;
 }
 
+/**
+ * Kontribusi terbobot per kategori; null berarti rincian belum dapat dihitung.
+ */
 export interface BreakdownRow {
   studentId: string;
   nim: string;
@@ -20,6 +36,9 @@ export interface BreakdownRow {
   finalScore: number;
 }
 
+/**
+ * Data chart beserta hitungan pengecualian agar pembaca memahami cakupannya.
+ */
 export interface ClassAnalytics {
   distribution: DistributionBucket[];
   breakdown: BreakdownRow[];
@@ -28,6 +47,9 @@ export interface ClassAnalytics {
   unavailableBreakdownCount: number;
 }
 
+/**
+ * Riwayat final dari API; field tambahan opsional mendukung data tanpa rincian komponen.
+ */
 export interface GradeHistoryEntry {
   grade_id?: string;
   enrollment_id: string;
@@ -45,6 +67,9 @@ export interface GradeHistoryEntry {
   }>;
 }
 
+/**
+ * Satu titik rata-rata semester dengan daftar kelas sumber untuk tooltip/tabel.
+ */
 export interface SemesterTrend {
   semester: string;
   average: number;
@@ -52,12 +77,17 @@ export interface SemesterTrend {
   entries: GradeHistoryEntry[];
 }
 
+/**
+ * Bedakan judul chart final dari draft lengkap sesuai populasi yang dipilih.
+ */
 export function distributionChartLabel(mode: AnalyticsMode) {
   return mode === "finalized"
     ? "Distribusi nilai final"
     : "Distribusi draft lengkap";
 }
 
+// Batas atas eksklusif; 101 membuat nilai tepat 100 masuk bucket terakhir.
+// Batas kelulusan 45 juga dipakai pada laporan dan email.
 const BUCKETS = [
   { label: "0–<45", min: 0, max: 45 },
   { label: "45–<60", min: 45, max: 60 },
@@ -66,12 +96,20 @@ const BUCKETS = [
   { label: "85–100", min: 85, max: 101 },
 ] as const;
 
+/**
+ * Konversi nilai API untuk grafik tanpa menganggap kosong sebagai angka nol.
+ * @returns Angka finite atau null ketika nilai absen/tidak numerik.
+ */
 function numeric(value: string | number | null | undefined): number | null {
   if (value === undefined || value === null || value === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/**
+ * Pastikan skor dapat dinormalisasi dengan maksimum/bobot positif.
+ * @returns boolean; null tidak dianggap sebagai skor nol.
+ */
 function scoreIsValid(score: number | null, component: GradeComponent) {
   const max = numeric(component.max_score);
   const weight = numeric(component.weight);
@@ -86,6 +124,9 @@ function scoreIsValid(score: number | null, component: GradeComponent) {
   );
 }
 
+/**
+ * Sertakan draft dalam analisis hanya jika semua komponen ada dan skornya valid.
+ */
 function draftIsComplete(
   row: GradeGrid["grades"][number],
   components: GradeGrid["components"],
@@ -98,6 +139,11 @@ function draftIsComplete(
   );
 }
 
+/**
+ * Jumlahkan kontribusi skor/maksimum kali bobot per kategori.
+ * @returns BreakdownRow; semua kategori null jika salah satu komponen tidak dapat
+ * dihitung.
+ */
 function breakdownFor(
   row: GradeGrid["grades"][number],
   components: GradeGrid["components"],
@@ -131,6 +177,11 @@ function breakdownFor(
   };
 }
 
+/**
+ * Pilih populasi sesuai mode dan total server yang valid sebelum membuat distribusi.
+ * @returns ClassAnalytics; draft tidak lengkap dikecualikan dan dilaporkan jumlahnya.
+ * Tidak mengubah grid input; final dengan rincian tidak lengkap tetap punya total resmi.
+ */
 export function buildClassAnalytics(
   grid: GradeGrid,
   mode: AnalyticsMode,
@@ -178,6 +229,11 @@ export function buildClassAnalytics(
   };
 }
 
+/**
+ * Kelompokkan hasil final valid menurut semester dan hitung rata-rata sederhana.
+ * @returns SemesterTrend[] terurut secara numerik; bukan rata-rata berbobot SKS.
+ * Input history tidak diubah; hasil kosong jika tidak ada angka valid.
+ */
 export function buildStudentTrend(history: GradeHistoryEntry[]): SemesterTrend[] {
   const semesters = new Map<string, GradeHistoryEntry[]>();
   for (const entry of history) {

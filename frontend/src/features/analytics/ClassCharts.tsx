@@ -1,3 +1,7 @@
+/**
+ * Chart distribusi dan kontribusi kategori beserta tabel data kelas.
+ * Memakai transformasi murni buildClassAnalytics agar grafik/tabel memiliki populasi yang sama.
+ */
 import {
   Bar,
   BarChart,
@@ -30,6 +34,10 @@ import {
   ChartSection,
 } from "./Charts";
 
+/**
+ * Render mode terpilih dan jumlah data yang dikecualikan; nilai final tetap dari total
+ * server.
+ */
 export function ClassCharts({
   grid,
   mode,

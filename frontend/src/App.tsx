@@ -1,3 +1,7 @@
+/**
+ * Komposisi provider cache dan route aplikasi yang dimount oleh main.
+ * Halaman fitur dimuat lazy di dalam Layout; route administratif memiliki guard role tambahan.
+ */
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -88,6 +92,10 @@ const router = createBrowserRouter(
   ),
 );
 
+/**
+ * Pasang satu QueryClient/provider router untuk seluruh halaman; instance dibuat di
+ * tingkat modul.
+ */
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>

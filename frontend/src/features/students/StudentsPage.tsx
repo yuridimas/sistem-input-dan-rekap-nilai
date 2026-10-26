@@ -1,3 +1,7 @@
+/**
+ * Daftar profil global mahasiswa dengan pencarian NIM/nama dan tautan riwayat.
+ * Pembuatan tersedia untuk dosen/admin; perubahan profil ditampilkan hanya bagi superadmin.
+ */
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -21,6 +25,10 @@ import { useAcademicQuery, type Student } from "@/features/academic/api";
 import { useAuth } from "@/features/auth/useAuth";
 import { StudentDialog } from "./StudentDialog";
 
+/**
+ * Kelola filter lokal dan pemilihan dialog sambil mempertahankan state query
+ * loading/error.
+ */
 export function StudentsPage() {
   const { user } = useAuth();
   const query = useAcademicQuery<Student[]>("/students");

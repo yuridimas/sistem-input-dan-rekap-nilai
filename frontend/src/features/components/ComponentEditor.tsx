@@ -1,3 +1,7 @@
+/**
+ * Editor konfigurasi lengkap untuk tab komponen halaman kelas.
+ * Mempertahankan ID tersimpan agar perubahan urutan tidak memutus relasi skor.
+ */
 import { useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 
@@ -22,6 +26,9 @@ import {
 } from "@/features/academic/api";
 import api from "@/lib/api";
 
+/**
+ * Key lokal menjaga identitas baris baru sebelum backend memberikan ID komponen.
+ */
 interface ComponentDraft {
   key: string;
   id?: string;
@@ -31,6 +38,11 @@ interface ComponentDraft {
   max_score: string;
 }
 
+/**
+ * Ubah konfigurasi server menjadi input teks; kelas kosong diawali UTS/UAS masing-masing
+ * 50%.
+ * @returns Draft baru; UUID lokal tidak dikirim sebagai ID database.
+ */
 function draftRows(rows: GradeComponent[]): ComponentDraft[] {
   return rows.length
     ? rows.map((row) => ({
@@ -57,13 +69,21 @@ function draftRows(rows: GradeComponent[]): ComponentDraft[] {
       ];
 }
 
+/**
+ * Parse angka nonnegatif maksimal dua desimal ke integer seperseratus tanpa jumlah float.
+ * @returns Integer aman atau null untuk format/angka di luar presisi aman.
+ */
 function hundredths(value: string) {
+  // Pola menerima desimal nonnegatif termasuk .5/5.; menolak eksponen dan lebih dari dua desimal.
   if (!/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(value)) return null;
   const [whole, fraction = ""] = value.split(".");
   const result = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
   return Number.isSafeInteger(result) ? result : null;
 }
 
+/**
+ * Simpan seluruh konfigurasi melalui PUT hanya setelah validasi UI dan pemeriksaan locked.
+ */
 function Editor({
   classId,
   initial,
@@ -86,6 +106,7 @@ function Editor({
         weights[index]! > 0 &&
         weights[index]! <= 10000 &&
         (hundredths(row.max_score) ?? 0) > 0 &&
+        // 999999 seperseratus = 9999.99, batas presisi max_score Numeric(6, 2).
         hundredths(row.max_score)! <= 999999,
     ) &&
     total === 10000 &&
@@ -107,11 +128,18 @@ function Editor({
     setRows(draftRows(data));
     setSaved(true);
   });
+  /**
+   * Terapkan edit satu draft baris dan hapus status sukses/error dari percobaan sebelumnya.
+   */
   function update(index: number, values: Partial<ComponentDraft>) {
     setSaved(false);
     mutation.reset();
     setRows(rows.map((row, i) => (i === index ? { ...row, ...values } : row)));
   }
+  /**
+   * Tukar baris dengan tetangga sambil mempertahankan key/ID komponen.
+   * direction diasumsikan -1 atau 1; tombol pemanggil menjaga index tujuan tetap valid.
+   */
   function move(index: number, direction: number) {
     const next = [...rows];
     [next[index], next[index + direction]] = [
@@ -314,6 +342,9 @@ function Editor({
   );
 }
 
+/**
+ * Muat konfigurasi sebelum memasang editor; locked menonaktifkan mutasi kelas final.
+ */
 export function ComponentEditor({
   classId,
   locked,

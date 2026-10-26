@@ -1,3 +1,7 @@
+/**
+ * Dialog mutasi mata kuliah yang dipakai halaman daftar dan detail.
+ * Hook mutasi bersama menjaga cache akademik/dashboard sesudah server menyimpan.
+ */
 import { useState } from "react";
 
 import { FieldGroup } from "@/components/ui/field";
@@ -9,6 +13,9 @@ import {
   type Course,
 } from "@/features/academic/api";
 
+/**
+ * Ubah input teks menjadi payload sebelum POST/PATCH; deleting memakai DELETE.
+ */
 export function CourseDialog({
   course,
   close,
@@ -37,6 +44,9 @@ export function CourseDialog({
       ? api.patch(`/courses/${course.id}`, payload)
       : api.post("/courses", payload);
   }, close);
+  /**
+   * Perbarui satu field form dengan key terikat tipe agar field lain tetap terjaga.
+   */
   const set = (name: keyof typeof form, value: string) =>
     setForm({ ...form, [name]: value });
   return (

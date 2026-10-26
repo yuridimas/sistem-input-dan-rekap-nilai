@@ -1,7 +1,14 @@
+/**
+ * Kontrak ringkasan server dan hook yang dipakai DashboardPage.
+ * Cache dipisahkan per pengguna agar pergantian sesi tidak memakai ringkasan akun lain.
+ */
 import { useQuery } from "@tanstack/react-query";
 
 import api from "@/lib/api";
 
+/**
+ * Ringkasan satu kelas; released_at null untuk kelas yang belum dirilis.
+ */
 export interface DashboardClass {
   id: string;
   section: string;
@@ -11,6 +18,9 @@ export interface DashboardClass {
   released_at: string | null;
 }
 
+/**
+ * Kelompok kelas dalam mata kuliah yang terlihat oleh pengguna.
+ */
 export interface DashboardCourse {
   id: string;
   code: string;
@@ -19,12 +29,18 @@ export interface DashboardCourse {
   classes: DashboardClass[];
 }
 
+/**
+ * Metadata mata kuliah tambahan untuk tautan daftar rilis terbaru.
+ */
 export interface DashboardRelease extends DashboardClass {
   course_id: string;
   course_code: string;
   course_name: string;
 }
 
+/**
+ * Hitungan dan kelompok kelas siap tampil dari endpoint summary.
+ */
 interface DashboardSummary {
   course_count: number;
   class_count: number;
@@ -33,6 +49,10 @@ interface DashboardSummary {
   recently_released: DashboardRelease[];
 }
 
+/**
+ * Muat ringkasan hanya setelah userId tersedia; cache dianggap segar selama 30 detik.
+ * @returns Hasil useQuery; satu retry otomatis untuk kegagalan sementara.
+ */
 export function useDashboard(userId: string | undefined) {
   return useQuery({
     queryKey: ["dashboard", "summary", userId],

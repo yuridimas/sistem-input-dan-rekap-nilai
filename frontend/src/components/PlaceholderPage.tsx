@@ -1,5 +1,13 @@
+/**
+ * Tampilan sementara route yang belum memiliki implementasi fitur.
+ * Saat ini dipakai App untuk halaman pengguna administratif.
+ */
 import { ArrowUpRight, BookOpenCheck } from "lucide-react";
 
+/**
+ * Tampilkan status kesiapan halaman dari title; opsi dashboard mendukung tampilan
+ * sambutan.
+ */
 export function PlaceholderPage({ title, dashboard = false }: { title: string; dashboard?: boolean }) {
   return (
     <section aria-labelledby="page-title" className="mx-auto max-w-5xl">

@@ -1,3 +1,7 @@
+/**
+ * Pengelolaan keikutsertaan mahasiswa pada halaman kelas.
+ * Operasi enrollment terpisah dari perubahan profil global dan tunduk penguncian nilai final.
+ */
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -28,6 +32,9 @@ import {
 } from "@/features/academic/api";
 import api from "@/lib/api";
 
+/**
+ * Pakai profil NIM yang sudah ada; kirim nama/email hanya untuk mahasiswa baru.
+ */
 function EnrollmentDialog({
   classId,
   close,
@@ -108,6 +115,9 @@ function EnrollmentDialog({
   );
 }
 
+/**
+ * Konfirmasi penghapusan enrollment tanpa menghapus profil mahasiswa global.
+ */
 function RemoveEnrollmentDialog({
   classId,
   row,
@@ -138,6 +148,9 @@ function RemoveEnrollmentDialog({
   );
 }
 
+/**
+ * Sajikan anggota kelas dan tindakan roster; locked menahan perubahan setelah finalisasi.
+ */
 export function Roster({
   classId,
   locked,

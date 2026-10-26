@@ -1,3 +1,7 @@
+/**
+ * Daftar laporan individu berdasarkan history final halaman detail mahasiswa.
+ * Menggunakan enrollment_id agar unduhan menunjuk hasil pada kelas yang tepat.
+ */
 import {
   Table,
   TableBody,
@@ -9,6 +13,10 @@ import {
 import type { GradeHistoryEntry } from "@/features/analytics/data";
 import { ReportDownloadButton } from "./ReportDownloadButton";
 
+/**
+ * Render history atau pesan kosong; tombol unduh tetap divalidasi akses/statusnya oleh
+ * server.
+ */
 export function StudentReportList({ history }: { history: GradeHistoryEntry[] }) {
   return (
     <section className="space-y-3" aria-labelledby="student-reports-title">

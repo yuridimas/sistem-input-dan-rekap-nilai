@@ -1,3 +1,7 @@
+/**
+ * Dialog profil mahasiswa global dari halaman StudentsPage.
+ * Penghapusan profil berbeda dari mengeluarkan mahasiswa dari roster kelas.
+ */
 import { useState } from "react";
 
 import { FieldGroup } from "@/components/ui/field";
@@ -9,6 +13,10 @@ import {
 } from "@/features/academic/api";
 import api from "@/lib/api";
 
+/**
+ * Kirim email kosong sebagai null; pilih create/update/delete sesuai props dan laporkan
+ * error field.
+ */
 export function StudentDialog({
   student,
   deleting = false,

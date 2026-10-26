@@ -1,3 +1,7 @@
+/**
+ * Halaman login yang dipasang App sebelum kelompok route terlindungi.
+ * Setelah token disimpan, profil dimuat ulang sebelum pengguna diarahkan ke tujuan lokal.
+ */
 import { useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
@@ -9,11 +13,17 @@ import api from "@/lib/api";
 import { authQueryKey, fetchCurrentUser, useAuth } from "@/features/auth/useAuth";
 import { useAuthStore } from "@/stores/authStore";
 
+/**
+ * Pasangan token yang diterima endpoint login untuk mengganti sesi pada store.
+ */
 interface TokenResponse {
   access_token: string;
   refresh_token: string;
 }
 
+/**
+ * Pisahkan kredensial salah dari gangguan jaringan tanpa menampilkan objek error mentah.
+ */
 function loginError(error: unknown) {
   if (axios.isAxiosError(error)) {
     if (error.response?.status === 401) return "Email atau kata sandi tidak sesuai.";
@@ -22,14 +32,22 @@ function loginError(error: unknown) {
   return "Login belum berhasil. Silakan coba lagi.";
 }
 
+/**
+ * Pilih tujuan lokal dari state router; tolak URL absolut dan path protocol-relative.
+ * @returns Path internal atau /dashboard jika state tidak valid; tidak melakukan navigasi.
+ */
 function returnPath(state: unknown) {
   const from = (state as { from?: { pathname?: unknown; search?: unknown; hash?: unknown } } | null)?.from;
+  // Tolak //host agar tujuan setelah login tidak menjadi redirect ke origin lain.
   if (typeof from?.pathname !== "string" || !from.pathname.startsWith("/") || from.pathname.startsWith("//")) {
     return "/dashboard";
   }
   return `${from.pathname}${typeof from.search === "string" ? from.search : ""}${typeof from.hash === "string" ? from.hash : ""}`;
 }
 
+/**
+ * Kelola input dan request sesi; tampilkan loading sampai hidrasi/profil selesai.
+ */
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,6 +66,10 @@ export function LoginPage() {
   }
   if (user && !submitting) return <Navigate to={returnPath(location.state)} replace />;
 
+  /**
+   * Kirim kredensial, ganti token, lalu muat profil agar sesi baru tidak memakai role lama.
+   * Error membersihkan token/cache auth; efek HTTP, storage, dan navigasi ditangani di sini.
+   */
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -157,6 +179,9 @@ export function LoginPage() {
   );
 }
 
+/**
+ * Gunakan identitas aplikasi yang sama untuk panel desktop dan form mobile.
+ */
 function Brand({ light = false }: { light?: boolean }) {
   return (
     <Link className="relative z-10 inline-flex w-fit items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring" to="/login">

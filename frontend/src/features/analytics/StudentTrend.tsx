@@ -1,3 +1,7 @@
+/**
+ * Visualisasi rata-rata semester dan kelas sumber pada halaman mahasiswa.
+ * Transformasi buildStudentTrend menjaga titik chart dan tabel alternatif tetap konsisten.
+ */
 import {
   CartesianGrid,
   Line,
@@ -19,6 +23,9 @@ import {
 import { buildStudentTrend, type GradeHistoryEntry, type SemesterTrend } from "./data";
 import { AccessibleTable, ChartSection } from "./Charts";
 
+/**
+ * Sajikan kelas pembentuk rata-rata; payload belum aktif/tersedia menghasilkan null.
+ */
 function TrendTooltip({
   active,
   payload,
@@ -47,6 +54,9 @@ function TrendTooltip({
   );
 }
 
+/**
+ * Render tren hasil final atau pesan kosong dengan tabel alternatif yang dapat diakses.
+ */
 export function StudentTrend({ history }: { history: GradeHistoryEntry[] }) {
   const trend = buildStudentTrend(history);
   if (trend.length === 0) {

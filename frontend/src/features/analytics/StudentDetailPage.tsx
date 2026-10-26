@@ -1,3 +1,7 @@
+/**
+ * Halaman profil, tren semester, dan laporan final satu mahasiswa.
+ * History diminta setelah profil tersedia; backend membatasi kelas yang dapat dilihat pengguna.
+ */
 import { Link, useParams } from "react-router-dom";
 
 import { PageHeader, QueryState } from "@/features/academic/Management";
@@ -6,6 +10,9 @@ import { StudentTrend } from "./StudentTrend";
 import type { GradeHistoryEntry } from "./data";
 import { StudentReportList } from "@/features/reports/StudentReportList";
 
+/**
+ * Rangkai query profil dan riwayat final sambil membedakan error profil dari history.
+ */
 export function StudentDetailPage() {
   const { studentId } = useParams();
   const student = useAcademicQuery<Student>(

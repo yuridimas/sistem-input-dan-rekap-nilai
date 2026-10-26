@@ -1,3 +1,7 @@
+/*
+ * Entry stylesheet global yang dimuat main.tsx; menghubungkan Tailwind dan tema komponen.
+ * Token light/dark dibaca UI melalui utility semantik, bukan warna per halaman.
+ */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

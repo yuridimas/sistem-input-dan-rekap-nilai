@@ -1,9 +1,16 @@
+/**
+ * Kontrol unduhan terautentikasi untuk laporan kelas dan individu.
+ * Utilitas download menangani Blob; komponen mengelola busy dan pesan kegagalan untuk pengguna.
+ */
 import { useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { downloadReport, reportErrorMessage } from "./download";
 
+/**
+ * Tahan klik berulang selama request; ariaLabel dapat memberi konteks baris laporan.
+ */
 export function ReportDownloadButton({
   path,
   filename,
@@ -18,6 +25,9 @@ export function ReportDownloadButton({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  /**
+   * Picu unduhan dan tampilkan error API/blob; busy selalu dilepas melalui finally.
+   */
   async function handleDownload() {
     setBusy(true);
     setError("");
@@ -40,6 +50,9 @@ export function ReportDownloadButton({
   );
 }
 
+/**
+ * Sajikan PDF dan XLSX untuk UUID kelas yang sudah dinyatakan siap oleh parent.
+ */
 export function ClassReportDownloads({ classId }: { classId: string }) {
   return (
     <div className="flex flex-wrap gap-2">

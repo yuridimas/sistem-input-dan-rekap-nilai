@@ -1,3 +1,7 @@
+/**
+ * Form pembuatan/perubahan/penghapusan kelas dari halaman mata kuliah atau kelas.
+ * Pemilihan dosen hanya dimuat bagi admin; backend tetap memeriksa hak penugasan.
+ */
 import { useId, useState } from "react";
 
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -20,6 +24,10 @@ import {
 import { useAuth } from "@/features/auth/useAuth";
 import api from "@/lib/api";
 
+/**
+ * Pilih operasi berdasarkan class_/deleting; tutup dan afterDelete hanya setelah mutasi
+ * sukses.
+ */
 export function ClassDialog({
   courseId,
   class_,

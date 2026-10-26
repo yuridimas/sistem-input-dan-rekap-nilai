@@ -1,3 +1,7 @@
+/**
+ * Tampilan dan interaksi sel nilai yang digerakkan state useGradeEntry.
+ * Kalkulasi/simpan berada di engine/hook; grid memetakan error dan fokus ke sel terkait.
+ */
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -25,9 +29,16 @@ import { NoData, QueryState } from "@/features/academic/Management";
 import { cellChanged, cellKey } from "./draft";
 import { configurationValid, missingCells, type GradeEntry } from "./hooks";
 
+/**
+ * Kunci DOM dari pasangan enrollment/komponen agar tautan sel kosong dapat memindahkan
+ * fokus.
+ */
 const inputId = (enrollment: string, component: string) =>
   `score-${enrollment}-${component}`;
 
+/**
+ * Sajikan draft, status simpan, dan dialog finalisasi tanpa menyimpan state skor terpisah.
+ */
 export function GradeEntryGrid({ entry }: { entry: GradeEntry }) {
   const [reloadOpen, setReloadOpen] = useState(false);
   const { engine, snapshot, query } = entry;
@@ -51,6 +62,10 @@ export function GradeEntryGrid({ entry }: { entry: GradeEntry }) {
           data.components.find((row) => row.name === item.component_name)?.id ??
           "",
       }));
+  /**
+   * Tutup dialog lalu fokus sel tujuan setelah pengelolaan fokus modal selesai.
+   * Penundaan 50 ms memberi kesempatan dialog mengembalikan fokus sebelum fokus grid.
+   */
   function focusMissing(enrollment: string, component: string) {
     entry.closeDialog();
     window.setTimeout(

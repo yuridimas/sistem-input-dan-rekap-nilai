@@ -1,3 +1,7 @@
+/**
+ * Guard router dan beforeunload untuk editor nilai di halaman kelas.
+ * Membaca engine/hook agar navigasi mempertimbangkan draft, save, dan hasil rilis yang belum pasti.
+ */
 import { useBeforeUnload, useBlocker } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +15,11 @@ import {
 } from "@/components/ui/dialog";
 import type { GradeEntry } from "./hooks";
 
+/**
+ * Tahan perpindahan selama ada pekerjaan nilai; tawarkan discard hanya saat aman.
+ * @param entry State editor; classId mempertahankan navigasi tab pada kelas yang sama.
+ * @returns Dialog guard; logout ke /login tidak ditahan agar sesi dapat berakhir.
+ */
 export function GradeNavigationGuard({
   entry,
   classId,

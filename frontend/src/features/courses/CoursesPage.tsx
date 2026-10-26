@@ -1,3 +1,7 @@
+/**
+ * Daftar mata kuliah terotorisasi beserta pencarian lokal dan dialog pengelolaan.
+ * Data berasal dari query akademik per pengguna; backend menentukan cakupan daftar.
+ */
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
@@ -21,6 +25,9 @@ import { useAcademicQuery, type Course } from "@/features/academic/api";
 import { useAuth } from "@/features/auth/useAuth";
 import { CourseDialog } from "./CourseDialog";
 
+/**
+ * Kelola pencarian dan modal tanpa mencampurkan filter lokal ke kontrak API daftar.
+ */
 export function CoursesPage() {
   const { user } = useAuth();
   const query = useAcademicQuery<Course[]>("/courses");

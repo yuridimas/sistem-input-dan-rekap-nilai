@@ -1,3 +1,7 @@
+/**
+ * Komponen pengelolaan bersama bagi form dan halaman fitur akademik.
+ * Menyatukan state loading/error, dialog mutasi, serta hubungan label/pesan validasi.
+ */
 import {
   useId,
   type ComponentProps,
@@ -26,6 +30,10 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { errorMessage } from "./api";
 
+/**
+ * Satukan judul/deskripsi halaman dengan slot tindakan tanpa mengikatnya pada resource
+ * tertentu.
+ */
 export function PageHeader({
   title,
   description,
@@ -50,6 +58,9 @@ export function PageHeader({
   );
 }
 
+/**
+ * Tampilkan pesan error API bersama; error kosong menghasilkan null.
+ */
 export function Notice({ error }: { error: unknown }) {
   return error ? (
     <Alert variant="destructive" role="alert">
@@ -59,6 +70,9 @@ export function Notice({ error }: { error: unknown }) {
   ) : null;
 }
 
+/**
+ * Bedakan loading dan error query dengan tombol refetch; kondisi sukses menghasilkan null.
+ */
 export function QueryState({
   query,
 }: {
@@ -93,6 +107,10 @@ export function QueryState({
   return null;
 }
 
+/**
+ * Jelaskan kondisi kosong menggunakan judul opsional dan deskripsi yang ditentukan
+ * halaman.
+ */
 export function NoData({
   title = "Belum ada data",
   description,
@@ -110,6 +128,10 @@ export function NoData({
   );
 }
 
+/**
+ * Hubungkan label, input, dan error lewat ID unik agar validasi dapat dibaca screen
+ * reader.
+ */
 export function TextField({
   label,
   error,
@@ -130,6 +152,9 @@ export function TextField({
   );
 }
 
+/**
+ * Cegah penutupan/edit selama mutasi agar hasil request tidak kehilangan konteks form.
+ */
 export function MutationDialog({
   title,
   description,

@@ -1,3 +1,7 @@
+/**
+ * Pemilihan populasi analytics pada tab kelas menggunakan snapshot server tersimpan.
+ * Perubahan draft lokal yang belum tersimpan tidak dimasukkan ke grafik.
+ */
 import { useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -8,6 +12,10 @@ import { useAcademicQuery } from "@/features/academic/api";
 import { ClassCharts } from "./ClassCharts";
 import type { AnalyticsMode } from "./data";
 
+/**
+ * Muat grid, pilih mode final/draft lengkap, dan ungkapkan jika ada perubahan lokal
+ * tertunda.
+ */
 export function ClassAnalyticsPanel({
   classId,
   hasUnsavedChanges = false,

@@ -1,7 +1,14 @@
+/**
+ * Wadah chart, tabel alternatif, dan legenda bersama untuk analytics.
+ * Tabel menyediakan data yang sama tanpa bergantung pada kemampuan membaca visual grafik.
+ */
 import type { ReactNode } from "react";
 
 import { CATEGORY_COLORS, CATEGORY_LABELS } from "./chartTokens";
 
+/**
+ * Pilih level heading sesuai hierarki parent dan beri nama area chart untuk aksesibilitas.
+ */
 export function ChartSection({
   title,
   description,
@@ -26,6 +33,9 @@ export function ChartSection({
   );
 }
 
+/**
+ * Sediakan rincian data dalam region yang dapat difokuskan dan digulir lewat keyboard.
+ */
 export function AccessibleTable({
   label,
   children,
@@ -50,6 +60,10 @@ export function AccessibleTable({
   );
 }
 
+/**
+ * Pasangkan label teks dengan warna kategori sehingga informasi tidak bergantung warna
+ * saja.
+ */
 export function BreakdownLegend() {
   return (
     <ul

@@ -1,3 +1,7 @@
+/**
+ * Detail mata kuliah dan kelas yang terlihat oleh pengguna saat ini.
+ * Hak edit mata kuliah dibedakan dari hak baca dosen yang memiliki penugasan kelas.
+ */
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Plus } from "lucide-react";
@@ -14,6 +18,9 @@ import { useAuth } from "@/features/auth/useAuth";
 import { ClassDialog } from "@/features/classes/ClassDialog";
 import { CourseDialog } from "./CourseDialog";
 
+/**
+ * Muat metadata terlebih dahulu lalu kelompokkan daftar kelas pada mata kuliah tujuan.
+ */
 export function CourseDetailPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();

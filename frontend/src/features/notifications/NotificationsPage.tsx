@@ -1,3 +1,7 @@
+/**
+ * Halaman audit dan retry pengiriman rilis untuk route superadmin.
+ * queued menandai pengiriman menunggu; sent mencerminkan hasil transport yang dicatat worker.
+ */
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,7 +23,13 @@ import { PageHeader, QueryState } from "@/features/academic/Management";
 import { useAuth } from "@/features/auth/useAuth";
 import api from "@/lib/api";
 
+/**
+ * Status persistence yang diterima dari API, terpisah dari label tampilan.
+ */
 type NotificationStatus = "queued" | "sent" | "failed";
+/**
+ * Catatan audit; alamat/error/sent_at bisa null sesuai tahap pengiriman.
+ */
 interface NotificationRecord {
   id: string;
   grade_id: string;
@@ -29,6 +39,9 @@ interface NotificationRecord {
   sent_at: string | null;
   created_at: string;
 }
+/**
+ * Pilihan semua status melengkapi nilai status persistence tanpa mengubah kontrak backend.
+ */
 type StatusFilter = "all" | NotificationStatus;
 
 const statusLabels: Record<NotificationStatus, string> = {
@@ -37,6 +50,9 @@ const statusLabels: Record<NotificationStatus, string> = {
   failed: "Gagal",
 };
 
+/**
+ * Terjemahkan status pengiriman menjadi label/badge yang konsisten pada tabel audit.
+ */
 function StatusBadge({ status }: { status: NotificationStatus }) {
   return (
     <Badge variant={status === "failed" ? "destructive" : status === "sent" ? "secondary" : "outline"}>
@@ -45,10 +61,18 @@ function StatusBadge({ status }: { status: NotificationStatus }) {
   );
 }
 
+/**
+ * Format waktu lokal untuk audit; nilai kosong diberi penanda agar tidak dianggap belum
+ * dimuat.
+ */
 function dateLabel(value: string | null) {
   return value ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—";
 }
 
+/**
+ * Pisahkan cache berdasarkan pengguna/filter dan segarkan daftar setelah retry
+ * administratif.
+ */
 export function NotificationsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
