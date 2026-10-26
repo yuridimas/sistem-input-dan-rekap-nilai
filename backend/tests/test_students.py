@@ -1,4 +1,10 @@
-"""Tests for student CRUD and duplicate NIM handling."""
+"""Tests for student CRUD and duplicate NIM handling.
+
+Profil global, NIM unik, dan autentikasi.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import uuid
 
@@ -12,16 +18,19 @@ from app.models.student import Student
 
 
 async def _login(client: AsyncClient, email: str, password: str) -> str:
+    """Login melalui API untuk mendapat token skenario."""
     r = await client.post("/auth/login", json={"email": email, "password": password})
     assert r.status_code == 200, r.text
     return r.json()["access_token"]
 
 
 def _headers(token: str) -> dict[str, str]:
+    """Bentuk header bearer dari token skenario."""
     return {"Authorization": f"Bearer {token}"}
 
 
 async def _cleanup(nims: list[str]) -> None:
+    """Hapus data skenario sesuai urutan relasi."""
     if not nims:
         return
     async with AsyncSessionLocal() as session:
@@ -31,6 +40,8 @@ async def _cleanup(nims: list[str]) -> None:
 
 @pytest.mark.asyncio
 async def test_student_crud_and_duplicate_nim():
+    """NIM duplikat ditolak dan perubahan profil dapat dibaca kembali.
+    """
     suffix = uuid.uuid4().hex[:8]
     nim = f"NIM{suffix}".upper()
     other_nim = f"NIMX{suffix}".upper()
@@ -114,6 +125,7 @@ async def test_student_crud_and_duplicate_nim():
 
 @pytest.mark.asyncio
 async def test_students_require_authentication():
+    """Endpoint profil harus menolak akses anonim."""
     async with AsyncClient(app=app, base_url="http://test") as c:
         r = await c.get("/students")
         assert r.status_code == 401

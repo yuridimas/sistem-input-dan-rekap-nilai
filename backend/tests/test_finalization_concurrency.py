@@ -1,4 +1,12 @@
-"""Real multi-connection serialization of grade release and roster writes."""
+"""Uji serialisasi rilis dan perubahan roster lintas koneksi.
+
+Real multi-connection serialization of grade release and roster writes.
+
+Urutan lock finalisasi dan mutasi pada koneksi terpisah.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import asyncio
 import uuid
@@ -27,6 +35,7 @@ from app.services.auth import create_access_token
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def release_context(monkeypatch):
+    """Siapkan transaksi terpisah untuk uji lock."""
     user_id, course_id, class_id, enrollment_id = [uuid.uuid4() for _ in range(4)]
     student_ids = [uuid.uuid4(), uuid.uuid4()]
     component_ids = [uuid.uuid4() for _ in range(3)]
@@ -34,6 +43,7 @@ async def release_context(monkeypatch):
     published = []
 
     async def publish(ids):
+        """Kendalikan hasil publish dalam skenario test."""
         published.extend(ids)
         return len(ids)
 
@@ -92,6 +102,7 @@ async def release_context(monkeypatch):
     ("finalize", "delete", (202, 409)),
 ])
 async def test_release_serializes_with_mutations(release_context, monkeypatch, first_action, second_action, statuses):
+    """Serialisasikan rilis terhadap perubahan kelas."""
     client, class_id, enrollment_id, component_ids, headers, extra_nim, published, _course_id, _user_id = release_context
     delete_id = enrollment_id
     if first_action == "delete":
@@ -104,6 +115,7 @@ async def test_release_serializes_with_mutations(release_context, monkeypatch, f
     calls = 0
 
     async def ordered_lock(db, target_id):
+        """Atur pertemuan transaksi untuk uji urutan lock."""
         nonlocal calls
         calls += 1
         if calls == 1:
@@ -117,6 +129,7 @@ async def test_release_serializes_with_mutations(release_context, monkeypatch, f
     monkeypatch.setattr(component_repo, "lock_class", ordered_lock)
 
     async def request(action):
+        """Jalankan request yang bersaing dalam uji concurrency."""
         if action == "finalize":
             return await client.post(f"/classes/{class_id}/finalize", headers=headers)
         if action == "score":
@@ -148,6 +161,7 @@ async def test_release_serializes_with_mutations(release_context, monkeypatch, f
 
 @pytest.mark.asyncio
 async def test_enrollment_of_new_student_holds_class_lock_until_commit(release_context, monkeypatch):
+    """Tahan lock kelas hingga enrollment committed."""
     from app.repositories import enrollment as enrollment_repo
 
     client, class_id, _enrollment, _components, headers, _nim, _published, _course, _user = release_context
@@ -158,6 +172,7 @@ async def test_enrollment_of_new_student_holds_class_lock_until_commit(release_c
     locks = 0
 
     async def observe_lock(db, target_id):
+        """Amati lock tanpa mengandalkan kecepatan mesin."""
         nonlocal locks
         locks += 1
         if locks == 2:
@@ -165,6 +180,7 @@ async def test_enrollment_of_new_student_holds_class_lock_until_commit(release_c
         await original_lock(db, target_id)
 
     async def pause_enrollment(db, enrollment):
+        """Tahan simpan roster untuk menguji umur lock kelas."""
         student_flushed.set()
         await finalizer_started.wait()
         return await original_add(db, enrollment)
@@ -194,6 +210,7 @@ async def test_enrollment_of_new_student_holds_class_lock_until_commit(release_c
 
 @pytest.mark.asyncio
 async def test_concurrent_new_nim_reuses_student_without_releasing_class_lock(release_context, monkeypatch):
+    """Pulihkan race NIM tanpa melepas lock kelas."""
     from app.repositories import student as student_repo
 
     client, class_id, _enrollment, _components, headers, _nim, _published, course_id, _user = release_context
@@ -208,6 +225,7 @@ async def test_concurrent_new_nim_reuses_student_without_releasing_class_lock(re
     misses = 0
 
     async def synchronized_lookup(db, target_nim):
+        """Sinkronkan lookup agar race insert NIM terjadi."""
         nonlocal misses
         result = await original_get(db, target_nim)
         if target_nim == nim and result is None:

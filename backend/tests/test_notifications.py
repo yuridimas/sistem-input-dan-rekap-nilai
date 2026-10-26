@@ -1,4 +1,10 @@
-"""Release audit, delivery, failure handling, and administrator retry."""
+"""Release audit, delivery, failure handling, and administrator retry.
+
+Status persisten pengiriman dan pemulihan admin.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import asyncio
 import smtplib
@@ -18,6 +24,7 @@ from tests.test_scores import grading_context
 
 
 async def release(grading_context, monkeypatch):
+    """Siapkan nilai final untuk skenario pengiriman."""
     client, class_id, enrollments, _components, (owner, _, _), db = grading_context
     mock_publisher(monkeypatch)
     student_ids = select(Enrollment.student_id).where(Enrollment.class_id == uuid.UUID(class_id))
@@ -31,6 +38,7 @@ async def release(grading_context, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_release_creates_queued_notifications_and_admin_filters(grading_context, monkeypatch):
+    """Catat notifikasi queued untuk audit dan filter admin."""
     client, _class_id, _enrollments, _components, (owner, _, admin), _db = grading_context
     await release(grading_context, monkeypatch)
     response = await client.get("/admin/notifications?status=queued", headers=admin)
@@ -46,6 +54,8 @@ async def test_release_creates_queued_notifications_and_admin_filters(grading_co
 
 @pytest.mark.asyncio
 async def test_mock_delivery_marks_sent_and_duplicate_delivery_is_skipped(grading_context, monkeypatch):
+    """Task duplikat tidak boleh mengirim ulang setelah sukses tercatat.
+    """
     from app.config import Settings
     from app.models.notification import Notification
     from app.services.notifications import deliver_grade
@@ -66,6 +76,7 @@ async def test_mock_delivery_marks_sent_and_duplicate_delivery_is_skipped(gradin
 
 @pytest.mark.asyncio
 async def test_delivery_failure_tracks_error_and_admin_retry_refreshes_address(grading_context, monkeypatch):
+    """Retry dengan alamat terbaru dan hapus error sebelumnya."""
     from app.models.notification import Notification
     from app.services.notifications import deliver_grade
 
@@ -74,6 +85,7 @@ async def test_delivery_failure_tracks_error_and_admin_retry_refreshes_address(g
     grade = (await db.execute(select(Grade).where(Grade.enrollment_id == uuid.UUID(enrollments[0])))).scalar_one()
 
     def unavailable(_message):
+        """Simulasikan dependency yang tidak tersedia."""
         raise smtplib.SMTPException("SMTP unavailable")
 
     monkeypatch.setattr("app.services.mailer.send_grade_email", unavailable)
@@ -88,6 +100,7 @@ async def test_delivery_failure_tracks_error_and_admin_retry_refreshes_address(g
     published = []
 
     async def publish(ids):
+        """Kendalikan hasil publish dalam skenario test."""
         assert not db.in_transaction()
         published.extend(ids)
         return len(ids)
@@ -107,6 +120,7 @@ async def test_delivery_failure_tracks_error_and_admin_retry_refreshes_address(g
 
 @pytest.mark.asyncio
 async def test_broker_failure_is_persisted_without_undoing_release(grading_context, monkeypatch):
+    """Catat broker gagal tanpa membatalkan rilis committed."""
     from app.celery_app import celery_app
     from app.models.notification import Notification
 
@@ -114,6 +128,7 @@ async def test_broker_failure_is_persisted_without_undoing_release(grading_conte
     await fill_scores(grading_context)
 
     def offline(*args, **kwargs):
+        """Simulasikan transport gagal tanpa jaringan."""
         raise ConnectionError("broker offline")
 
     monkeypatch.setattr(celery_app, "send_task", offline)
@@ -129,6 +144,7 @@ async def test_broker_failure_is_persisted_without_undoing_release(grading_conte
 
 @pytest.mark.asyncio
 async def test_missing_recipient_fails_without_smtp_and_queued_retry_is_recoverable(grading_context, monkeypatch):
+    """Tolak alamat kosong dan izinkan pemulihan queued."""
     from app.models.notification import Notification
     from app.services.notifications import deliver_grade
 
@@ -146,6 +162,7 @@ async def test_missing_recipient_fails_without_smtp_and_queued_retry_is_recovera
                                                          Notification.grade_id.in_(select(Grade.id).where(Grade.enrollment_id == uuid.UUID(enrollments[1])))))).scalar_one()
 
     async def publish(ids):
+        """Kendalikan hasil publish dalam skenario test."""
         return len(ids)
 
     monkeypatch.setattr("app.services.notifications.publish_grade_releases", publish)
@@ -154,6 +171,7 @@ async def test_missing_recipient_fails_without_smtp_and_queued_retry_is_recovera
 
 @pytest.mark.asyncio
 async def test_eager_task_sends_once_and_exhausts_three_retries(release_context, monkeypatch):
+    """Akhiri pengiriman setelah tiga retry gagal."""
     from app.models.notification import Notification
     from app.tasks.notifications import send_grade_release_email
 
@@ -168,6 +186,7 @@ async def test_eager_task_sends_once_and_exhausts_three_retries(release_context,
     calls = []
 
     def unavailable(message):
+        """Simulasikan dependency yang tidak tersedia."""
         calls.append(message)
         raise smtplib.SMTPException("eager failure")
 
@@ -190,6 +209,7 @@ async def test_eager_task_sends_once_and_exhausts_three_retries(release_context,
 
 @pytest.mark.asyncio
 async def test_notification_comments_and_draft_messages_are_ignored(grading_context, monkeypatch):
+    """Periksa metadata dan abaikan pengiriman nilai draft."""
     from sqlalchemy import text
     from app.models.notification import Notification
     from app.services.notifications import deliver_grade
@@ -211,6 +231,7 @@ async def test_notification_comments_and_draft_messages_are_ignored(grading_cont
 
 @pytest.mark.asyncio
 async def test_real_celery_worker_processes_queued_grade(release_context, monkeypatch):
+    """Uji kontrak task/broker melalui worker lintas proses."""
     from celery.contrib.testing.worker import start_worker
     from app.celery_app import celery_app
     from app.models.notification import Notification
@@ -237,6 +258,7 @@ async def test_real_celery_worker_processes_queued_grade(release_context, monkey
                                 queue=queue_name, ignore_result=True)
 
         async def wait_until_sent():
+            """Tunggu catatan pengiriman hingga batas waktu test."""
             while True:
                 async with AsyncSessionLocal() as db:
                     status = await db.scalar(select(Notification.status).where(Notification.grade_id == grade_id))
@@ -252,6 +274,7 @@ async def test_real_celery_worker_processes_queued_grade(release_context, monkey
 
 @pytest.mark.asyncio
 async def test_duplicate_task_deliveries_are_serialized(release_context, monkeypatch):
+    """Serialisasikan task duplikat sebelum batas SMTP."""
     from app.tasks.notifications import send_grade_release_email
 
     client, class_id, enrollment_id, _components, headers, _nim, _published, _course, _user = release_context
@@ -274,6 +297,7 @@ async def test_duplicate_task_deliveries_are_serialized(release_context, monkeyp
 
 @pytest.mark.asyncio
 async def test_terminal_failure_requires_manual_retry(grading_context, monkeypatch):
+    """Batasi pemulihan kegagalan terminal pada admin."""
     from app.services.notifications import deliver_grade
 
     _client, _class, enrollments, _components, _headers, db = grading_context
@@ -281,6 +305,7 @@ async def test_terminal_failure_requires_manual_retry(grading_context, monkeypat
     grade_id = await db.scalar(select(Grade.id).where(Grade.enrollment_id == uuid.UUID(enrollments[0])))
 
     def fail(_message):
+        """Suntik kegagalan untuk menguji penanganan error."""
         raise smtplib.SMTPException("terminal failure")
 
     monkeypatch.setattr("app.services.mailer.send_grade_email", fail)
@@ -291,6 +316,7 @@ async def test_terminal_failure_requires_manual_retry(grading_context, monkeypat
 
 @pytest.mark.asyncio
 async def test_stale_enqueue_failure_cannot_cancel_newer_retry(release_context, monkeypatch):
+    """Gagal enqueue generasi lama tidak boleh menimpa dispatch baru."""
     from app.models.notification import Notification
     from app.services.notifications import retry_notification
 
@@ -303,6 +329,7 @@ async def test_stale_enqueue_failure_cannot_cancel_newer_retry(release_context, 
     calls = 0
 
     async def publish(ids):
+        """Kendalikan hasil publish dalam skenario test."""
         nonlocal calls
         calls += 1
         if calls == 1:
@@ -314,6 +341,7 @@ async def test_stale_enqueue_failure_cannot_cancel_newer_retry(release_context, 
     monkeypatch.setattr("app.services.notifications.publish_grade_releases", publish)
 
     async def retry_once():
+        """Kendalikan kegagalan sementara untuk uji retry."""
         async with AsyncSessionLocal() as db:
             return await retry_notification(db, notification_id)
 
@@ -334,6 +362,7 @@ async def test_stale_enqueue_failure_cannot_cancel_newer_retry(release_context, 
 
 @pytest.mark.asyncio
 async def test_old_automatic_retry_token_cannot_affect_manual_recovery(release_context, monkeypatch):
+    """Abaikan token retry dari generasi lama."""
     from app.models.notification import Notification
     from app.services.notifications import retry_notification
     from app.tasks.notifications import send_grade_release_email
@@ -346,6 +375,7 @@ async def test_old_automatic_retry_token_cannot_affect_manual_recovery(release_c
         old_token = notification.dispatch_token
 
         async def publish(ids):
+            """Kendalikan hasil publish dalam skenario test."""
             return len(ids)
 
         monkeypatch.setattr("app.services.notifications.publish_grade_releases", publish)

@@ -1,4 +1,10 @@
-"""Finalization transaction, sequential ranking, and release boundaries."""
+"""Finalization transaction, sequential ranking, and release boundaries.
+
+Transaksi rilis, ranking, dan batas enqueue.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import uuid
 from decimal import Decimal
@@ -16,6 +22,8 @@ from tests.test_scores import grading_context, score_payload
 
 
 async def fill_scores(context, values=("80", "70", "90")):
+    """Isi seluruh roster agar skenario dapat mencapai batas finalisasi.
+    """
     client, _class_id, enrollments, components, (owner, _, _), _db = context
     for enrollment in enrollments:
         response = await client.put(f"/enrollments/{enrollment}/scores", headers=owner,
@@ -24,9 +32,11 @@ async def fill_scores(context, values=("80", "70", "90")):
 
 
 def mock_publisher(monkeypatch):
+    """Catat enqueue tanpa broker Redis nyata."""
     published = []
 
     async def publish(grade_ids):
+        """Kendalikan hasil publish dalam skenario test."""
         published.extend(grade_ids)
         return len(grade_ids)
 
@@ -36,6 +46,7 @@ def mock_publisher(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_finalize_lists_every_missing_score_without_writes(grading_context, monkeypatch):
+    """Laporkan semua skor kosong tanpa rilis parsial."""
     client, class_id, enrollments, components, (owner, _, _), db = grading_context
     published = mock_publisher(monkeypatch)
     await client.put(f"/enrollments/{enrollments[0]}/scores", headers=owner,
@@ -58,6 +69,7 @@ async def test_finalize_lists_every_missing_score_without_writes(grading_context
 @pytest.mark.asyncio
 @pytest.mark.parametrize("release_as_admin", [False, True])
 async def test_finalize_success_ties_and_release_metadata(grading_context, monkeypatch, release_as_admin):
+    """Rilis total, ranking, pelaku, dan waktu secara konsisten."""
     client, class_id, enrollments, _components, (owner, _, admin), db = grading_context
     published = mock_publisher(monkeypatch)
     assert (await client.get(f"/classes/{class_id}/ranking", headers=owner)).json() == []
@@ -92,6 +104,7 @@ async def test_finalize_success_ties_and_release_metadata(grading_context, monke
 
 @pytest.mark.asyncio
 async def test_ranking_orders_scores_before_nim_and_zero_is_complete(grading_context, monkeypatch):
+    """Urutkan skor lalu NIM dan anggap nol sebagai lengkap."""
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
     mock_publisher(monkeypatch)
     await fill_scores(grading_context, ("0", "0", "0"))
@@ -106,6 +119,7 @@ async def test_ranking_orders_scores_before_nim_and_zero_is_complete(grading_con
 
 @pytest.mark.asyncio
 async def test_finalized_class_locks_roster_scores_and_components(grading_context, monkeypatch):
+    """Bekukan roster, skor, dan komponen setelah rilis."""
     client, class_id, enrollments, components, (owner, _, admin), db = grading_context
     mock_publisher(monkeypatch)
     await fill_scores(grading_context)
@@ -124,6 +138,7 @@ async def test_finalized_class_locks_roster_scores_and_components(grading_contex
 
 @pytest.mark.asyncio
 async def test_finalize_and_ranking_access(grading_context):
+    """Jaga batas akses rilis dan ranking berdasarkan pemilik."""
     client, class_id, _enrollments, _components, (owner, other, _), _db = grading_context
     for suffix in ("finalize", "ranking"):
         method = client.post if suffix == "finalize" else client.get
@@ -135,6 +150,7 @@ async def test_finalize_and_ranking_access(grading_context):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("invalid", ["empty", "components"])
 async def test_finalize_rejects_empty_or_invalid_configuration(grading_context, monkeypatch, invalid):
+    """Tolak rilis kelas kosong atau konfigurasi invalid."""
     client, class_id, enrollments, _components, (owner, _, _), db = grading_context
     published = mock_publisher(monkeypatch)
     if invalid == "empty":
@@ -149,6 +165,7 @@ async def test_finalize_rejects_empty_or_invalid_configuration(grading_context, 
 
 @pytest.mark.asyncio
 async def test_ranking_failure_rolls_back_finalization(grading_context, monkeypatch):
+    """Rollback seluruh finalisasi ketika ranking gagal."""
     from app.repositories import ranking as ranking_repo
 
     client, class_id, enrollments, _components, (owner, _, _), db = grading_context
@@ -156,6 +173,7 @@ async def test_ranking_failure_rolls_back_finalization(grading_context, monkeypa
     await fill_scores(grading_context)
 
     async def fail(*args, **kwargs):
+        """Suntik kegagalan untuk menguji penanganan error."""
         raise IntegrityError("INSERT rankings", {}, Exception("simulated failure"))
 
     monkeypatch.setattr(ranking_repo, "create_for_class", fail)
@@ -169,6 +187,7 @@ async def test_ranking_failure_rolls_back_finalization(grading_context, monkeypa
 
 @pytest.mark.asyncio
 async def test_finalization_uses_current_owner_after_lock(grading_context, monkeypatch):
+    """Periksa pemilik terbaru setelah menunggu lock."""
     from app.models.class_ import Class
     from app.repositories import component as component_repo
 
@@ -178,6 +197,7 @@ async def test_finalization_uses_current_owner_after_lock(grading_context, monke
     other_id = uuid.UUID(decode_token(other["Authorization"].split()[1])["sub"])
 
     async def transfer(session, target_id):
+        """Ganti pemilik pada batas lock untuk menguji otorisasi."""
         await db.execute(update(Class).where(Class.id == target_id).values(lecturer_id=other_id)
                          .execution_options(synchronize_session=False))
         await original_lock(session, target_id)
@@ -189,6 +209,7 @@ async def test_finalization_uses_current_owner_after_lock(grading_context, monke
 
 @pytest.mark.asyncio
 async def test_ranking_database_comments(grading_context):
+    """Pastikan metadata ranking dapat diaudit dari DB."""
     db = grading_context[-1]
     comments = (await db.execute(text("""
         SELECT col_description('rankings'::regclass, attnum)
@@ -200,12 +221,14 @@ async def test_ranking_database_comments(grading_context):
 
 @pytest.mark.asyncio
 async def test_failed_enrollment_does_not_leave_new_student(grading_context, monkeypatch):
+    """Rollback profil baru saat pendaftaran gagal."""
     from app.repositories import enrollment as enrollment_repo
 
     client, class_id, _enrollments, _components, (owner, _, _), db = grading_context
     nim = f"atomic-{uuid.uuid4().hex}"
 
     async def fail(*args, **kwargs):
+        """Suntik kegagalan untuk menguji penanganan error."""
         raise IntegrityError("INSERT enrollments", {}, Exception("simulated conflict"))
 
     monkeypatch.setattr(enrollment_repo, "add", fail)
@@ -216,6 +239,8 @@ async def test_failed_enrollment_does_not_leave_new_student(grading_context, mon
 
 @pytest.mark.asyncio
 async def test_broker_failure_does_not_undo_release(grading_context, monkeypatch):
+    """Broker gagal tidak mengembalikan hasil committed ke status draft.
+    """
     from app.celery_app import celery_app
 
     client, class_id, _enrollments, _components, (owner, _, _), _db = grading_context
@@ -223,6 +248,7 @@ async def test_broker_failure_does_not_undo_release(grading_context, monkeypatch
     calls = []
 
     def unavailable(*args, **kwargs):
+        """Simulasikan dependency yang tidak tersedia."""
         calls.append(args)
         raise ConnectionError("broker offline")
 
@@ -238,10 +264,13 @@ async def test_broker_failure_does_not_undo_release(grading_context, monkeypatch
 
 @pytest.mark.asyncio
 async def test_publisher_runs_only_after_commit(grading_context, monkeypatch):
+    """Worker baru diberi task setelah nilai dapat dibaca koneksi lain.
+    """
     client, class_id, _enrollments, _components, (owner, _, _), db = grading_context
     await fill_scores(grading_context)
 
     async def publish(ids):
+        """Kendalikan hasil publish dalam skenario test."""
         assert not db.in_transaction()
         return len(ids)
 
@@ -251,6 +280,7 @@ async def test_publisher_runs_only_after_commit(grading_context, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_finalize_creates_missing_grade_from_complete_scores(grading_context, monkeypatch):
+    """Rilis skor lengkap meskipun total draft belum ada."""
     client, class_id, enrollments, _components, (owner, _, _), db = grading_context
     mock_publisher(monkeypatch)
     await fill_scores(grading_context)
@@ -264,6 +294,7 @@ async def test_finalize_creates_missing_grade_from_complete_scores(grading_conte
 
 @pytest.mark.asyncio
 async def test_queue_contract_partial_failure_and_thread_offload(monkeypatch, caplog):
+    """Uji prefix enqueue sukses dan offload publisher."""
     import threading
     from app.celery_app import celery_app
     from app.services.release_notifications import GRADE_RELEASE_TASK, publish_grade_releases
@@ -273,6 +304,7 @@ async def test_queue_contract_partial_failure_and_thread_offload(monkeypatch, ca
     main_thread = threading.get_ident()
 
     def send(name, *, args, retry):
+        """Amati task yang diterima dan thread publisher."""
         assert threading.get_ident() != main_thread
         assert name == GRADE_RELEASE_TASK and retry is False
         calls.append(args)

@@ -1,4 +1,10 @@
-"""Read-only finalized history and per-lecturer visibility."""
+"""Read-only finalized history and per-lecturer visibility.
+
+History final terotorisasi dan pembacaan batch.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import uuid
 from datetime import datetime, timezone
@@ -22,6 +28,7 @@ from tests.test_scores import grading_context, score_payload
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def history_context(grading_context, monkeypatch):
+    """Siapkan kelas final dan draft untuk uji history."""
     client, original_class, enrollments, components, (owner, other, admin), db = grading_context
     mock_publisher(monkeypatch)
     await fill_scores(grading_context)
@@ -75,6 +82,7 @@ async def history_context(grading_context, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_history_returns_finalized_grades_and_component_scores(history_context):
+    """Sertakan rincian skor pada riwayat nilai final."""
     context, student_id, class_ids, enrollments, component_sets = history_context
     client, _class_id, _enrollments, _components, (owner, _other, admin), db = context
     response = await client.get(f"/students/{student_id}/history", headers=owner)
@@ -108,6 +116,7 @@ async def test_history_returns_finalized_grades_and_component_scores(history_con
 
 @pytest.mark.asyncio
 async def test_history_scopes_components_and_grades_to_current_lecturer(history_context):
+    """Batasi nilai dan rincian history sesuai dosen."""
     context, student_id, class_ids, enrollments, components = history_context
     client, _class_id, _enrollments, _components, (owner, other, _admin), db = context
     rows = (await client.get(f"/students/{student_id}/history", headers=other)).json()
@@ -123,6 +132,7 @@ async def test_history_scopes_components_and_grades_to_current_lecturer(history_
 
 @pytest.mark.asyncio
 async def test_history_keeps_grade_when_ranking_is_missing(history_context):
+    """Pertahankan history final meskipun ranking belum ada."""
     context, student_id, _classes, enrollments, _components = history_context
     client, _class_id, _enrollments, _components, (owner, _, _), db = context
     await db.execute(delete(Ranking).where(Ranking.enrollment_id == uuid.UUID(enrollments[0])))
@@ -133,6 +143,7 @@ async def test_history_keeps_grade_when_ranking_is_missing(history_context):
 
 @pytest.mark.asyncio
 async def test_history_empty_and_request_errors(grading_context):
+    """Bedakan history kosong dari kegagalan akses/input."""
     client, _class_id, enrollments, components, (owner, other, _), db = grading_context
     enrollment = await db.get(Enrollment, uuid.UUID(enrollments[0]))
     url = f"/students/{enrollment.student_id}/history"
@@ -148,6 +159,7 @@ async def test_history_empty_and_request_errors(grading_context):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("method", ["post", "put", "patch", "delete"])
 async def test_history_rejects_write_methods(history_context, method):
+    """History tetap read-only tanpa jalur mutasi hasil rilis."""
     context, student_id, _classes, _enrollments, _components = history_context
     client, _class_id, _ids, _rows, (owner, _, _), _db = context
     response = await client.request(method, f"/students/{student_id}/history", headers=owner)
@@ -156,11 +168,13 @@ async def test_history_rejects_write_methods(history_context, method):
 
 @pytest.mark.asyncio
 async def test_history_reads_are_batched_and_do_not_write(history_context):
+    """Jaga anggaran query dan sifat read-only history."""
     context, student_id, _classes, _enrollments, _components = history_context
     client, _class_id, _ids, _rows, (_, _, admin), _db = context
     statements = []
 
     def record(_conn, _cursor, statement, _parameters, _execution_context, _executemany):
+        """Catat statement untuk uji anggaran query."""
         statements.append(statement)
 
     event.listen(engine.sync_engine, "before_cursor_execute", record)
@@ -178,6 +192,7 @@ async def test_history_reads_are_batched_and_do_not_write(history_context):
 
 @pytest.mark.asyncio
 async def test_rejected_release_edits_leave_history_unchanged(history_context):
+    """Edit yang ditolak sesudah rilis tidak mengubah isi history."""
     context, student_id, classes, enrollments, components = history_context
     client, _class_id, _ids, _rows, (owner, _, _), _db = context
     url = f"/students/{student_id}/history"
@@ -192,6 +207,7 @@ async def test_rejected_release_edits_leave_history_unchanged(history_context):
 
 @pytest.mark.asyncio
 async def test_history_breaks_timestamp_and_component_order_ties_deterministically(history_context):
+    """Pertahankan urutan history pada timestamp/order seri."""
     context, student_id, classes, enrollments, _components = history_context
     client, _class_id, _ids, _rows, (_, _, admin), db = context
     timestamp = datetime(2026, 1, 1, tzinfo=timezone.utc)

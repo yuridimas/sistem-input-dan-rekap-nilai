@@ -1,4 +1,10 @@
-"""Backend contracts required by the academic management screens."""
+"""Backend contracts required by the academic management screens.
+
+Kontrak backend yang diperlukan halaman pengelolaan akademik.
+
+Memerlukan PostgreSQL disposable yang sudah dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import pytest
 
@@ -7,6 +13,7 @@ from tests.test_dashboard import dashboard_context
 
 @pytest.mark.asyncio
 async def test_assigned_course_read_access_does_not_grant_write_access(dashboard_context):
+    """Pisahkan hak baca penugasan dari hak ubah pencipta."""
     client, _, _, courses, _, headers, _ = dashboard_context
     response = await client.get("/courses", headers=headers[0])
     assert response.status_code == 200
@@ -25,6 +32,7 @@ async def test_assigned_course_read_access_does_not_grant_write_access(dashboard
 
 @pytest.mark.asyncio
 async def test_class_lock_flag_covers_partial_finalizations_and_write_responses(dashboard_context):
+    """Kunci roster sejak ada satu nilai final."""
     client, _, _, courses, classes, headers, _ = dashboard_context
     response = await client.get("/classes", headers=headers[0])
     assert response.status_code == 200
@@ -45,6 +53,7 @@ async def test_class_lock_flag_covers_partial_finalizations_and_write_responses(
 
 @pytest.mark.asyncio
 async def test_student_patch_clears_explicit_email_and_preserves_omitted_email(dashboard_context):
+    """Bedakan email absen dari penghapusan eksplisit."""
     client, _, _, _, classes, headers, _ = dashboard_context
     roster = (await client.get(f"/classes/{classes[2].id}/roster", headers=headers[0])).json()
     student_id = roster[0]["student"]["id"]

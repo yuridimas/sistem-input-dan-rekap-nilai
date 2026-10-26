@@ -1,4 +1,10 @@
-"""Score entry, draft calculations, audit data, and access boundaries."""
+"""Score entry, draft calculations, audit data, and access boundaries.
+
+Skor parsial, total draft, audit, dan penulis serentak.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import asyncio
 import uuid
@@ -23,6 +29,7 @@ from app.services.auth import create_access_token, decode_token
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def grading_context():
+    """Siapkan dosen, admin, roster, dan komponen valid."""
     async with engine.connect() as connection:
         transaction = await connection.begin()
         try:
@@ -55,6 +62,8 @@ async def grading_context():
                 await db.commit()
 
                 async def override_db():
+                    """Pinjamkan session fixture ke dependency endpoint.
+                    """
                     yield db
 
                 app.dependency_overrides[get_db] = override_db
@@ -80,11 +89,15 @@ async def grading_context():
 
 
 def score_payload(components, values=("80", "70", "90")):
+    """Petakan urutan komponen fixture ke skor JSON untuk request API.
+    """
     return {component["id"]: value for component, value in zip(components, values)}
 
 
 @pytest.mark.asyncio
 async def test_scores_compute_final_and_update_without_duplicates(grading_context):
+    """Edit mengganti skor lama dan total tanpa membuat baris duplikat.
+    """
     client, class_id, enrollments, components, (owner, _, admin), db = grading_context
     url = f"/enrollments/{enrollments[0]}/scores"
     response = await client.put(url, headers=owner, json=score_payload(components))
@@ -134,6 +147,7 @@ async def test_scores_compute_final_and_update_without_duplicates(grading_contex
 
 @pytest.mark.asyncio
 async def test_partial_scores_preserve_missing_and_zero_scores(grading_context):
+    """Bedakan skor nol, absen, dan field yang tidak dikirim."""
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
     url = f"/enrollments/{enrollments[0]}/scores"
     response = await client.put(url, headers=owner, json={components[0]["id"]: "80"})
@@ -150,6 +164,7 @@ async def test_partial_scores_preserve_missing_and_zero_scores(grading_context):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("value", ["-0.01", "100.01", "NaN", "Infinity", "1.001", True, "invalid"])
 async def test_invalid_scores_rejected_atomically(grading_context, value):
+    """Tolak seluruh patch ketika salah satu skor invalid."""
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
     response = await client.put(f"/enrollments/{enrollments[0]}/scores", headers=owner,
                                 json={components[0]["id"]: "80", components[1]["id"]: value})
@@ -160,6 +175,7 @@ async def test_invalid_scores_rejected_atomically(grading_context, value):
 
 @pytest.mark.asyncio
 async def test_scores_reject_unknown_components_and_empty_payload(grading_context):
+    """Komponen asing dan payload kosong ditolak sebelum mutasi."""
     client, _class_id, enrollments, components, (owner, _, _), db = grading_context
     url = f"/enrollments/{enrollments[0]}/scores"
     for payload in ({}, {"bad-id": "80"}, {str(uuid.uuid4()): "80"}):
@@ -181,6 +197,7 @@ async def test_scores_reject_unknown_components_and_empty_payload(grading_contex
 
 @pytest.mark.asyncio
 async def test_scores_require_class_access(grading_context):
+    """Simpan tetap memeriksa pemilik walaupun enrollment ID valid."""
     client, class_id, enrollments, components, (owner, other, admin), _db = grading_context
     url = f"/enrollments/{enrollments[0]}/scores"
     payload = score_payload(components)
@@ -195,6 +212,7 @@ async def test_scores_require_class_access(grading_context):
 
 @pytest.mark.asyncio
 async def test_nonstandard_maximum_and_decimal_rounding(grading_context):
+    """Hitung total Decimal dengan maksimum nonseratus."""
     client, _class_id, enrollments, components, (owner, _, _), _db = grading_context
     response = await client.patch(f"/components/{components[0]['id']}", headers=owner,
                                   json={"max_score": "20"})
@@ -215,6 +233,7 @@ async def test_nonstandard_maximum_and_decimal_rounding(grading_context):
     (("0.01", "0.01", "99.98"), ("3", "6", "100"), "0.01"),
 ])
 async def test_normalized_contributions_round_exact_half_up(grading_context, weights, maximums, expected):
+    """Pertahankan batas setengah sen saat normalisasi."""
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
     payload = [
         {"id": component["id"], "name": component["name"], "category": component["category"],
@@ -232,6 +251,7 @@ async def test_normalized_contributions_round_exact_half_up(grading_context, wei
 
 @pytest.mark.asyncio
 async def test_score_grade_database_comments(grading_context):
+    """Komentar skor/total harus tersedia pada schema PostgreSQL."""
     _client, _class_id, _enrollments, _components, _headers, db = grading_context
     for table, column_count in (("scores", 7), ("grades", 7)):
         result = await db.execute(text("""
@@ -248,6 +268,8 @@ async def test_score_grade_database_comments(grading_context):
 
 @pytest.mark.asyncio
 async def test_component_reweight_recalculates_draft(grading_context):
+    """Bobot baru harus menghitung ulang draft agar total tidak usang.
+    """
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
     url = f"/enrollments/{enrollments[0]}/scores"
     assert (await client.put(url, headers=owner, json=score_payload(components))).status_code == 200
@@ -270,6 +292,8 @@ async def test_component_reweight_recalculates_draft(grading_context):
 
 @pytest.mark.asyncio
 async def test_component_maximum_cannot_invalidate_saved_score(grading_context):
+    """Maksimum baru tidak boleh membuat skor tersimpan menjadi invalid.
+    """
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
     await client.put(f"/enrollments/{enrollments[0]}/scores", headers=owner, json=score_payload(components))
     response = await client.patch(f"/components/{components[0]['id']}", headers=owner,
@@ -282,6 +306,7 @@ async def test_component_maximum_cannot_invalidate_saved_score(grading_context):
 
 @pytest.mark.asyncio
 async def test_scored_component_removal_rolls_back_entire_configuration(grading_context):
+    """Rollback penghapusan komponen yang memiliki skor."""
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
     await client.put(f"/enrollments/{enrollments[0]}/scores", headers=owner, json=score_payload(components))
     payload = [
@@ -297,6 +322,7 @@ async def test_scored_component_removal_rolls_back_entire_configuration(grading_
 
 @pytest.mark.asyncio
 async def test_finalized_scores_and_components_are_immutable(grading_context):
+    """Nilai final dan konfigurasi asal tetap stabil setelah rilis."""
     from app.models.grade import Grade
 
     client, class_id, enrollments, components, (owner, _, admin), db = grading_context
@@ -321,12 +347,14 @@ async def test_finalized_scores_and_components_are_immutable(grading_context):
 
 @pytest.mark.asyncio
 async def test_score_failure_rolls_back_scores_and_grade(grading_context, monkeypatch):
+    """Rollback skor ketika penyimpanan total gagal."""
     from sqlalchemy.exc import IntegrityError
     from app.repositories import grades as grade_repo
 
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
 
     def fail_grade_insert(*args, **kwargs):
+        """Gagalkan total untuk membuktikan rollback skor."""
         raise IntegrityError("INSERT grades", {}, Exception("simulated conflict"))
 
     monkeypatch.setattr(grade_repo, "add_draft", fail_grade_insert)
@@ -338,6 +366,7 @@ async def test_score_failure_rolls_back_scores_and_grade(grading_context, monkey
 
 @pytest.mark.asyncio
 async def test_scores_recheck_class_owner_after_lock(grading_context, monkeypatch):
+    """Save memakai pemilik terbaru setelah penulis menunggu lock."""
     from app.repositories import component as component_repo
 
     client, class_id, enrollments, components, (owner, other, _), db = grading_context
@@ -345,6 +374,7 @@ async def test_scores_recheck_class_owner_after_lock(grading_context, monkeypatc
     other_id = uuid.UUID(decode_token(other["Authorization"].split()[1])["sub"])
 
     async def reassign_before_lock(session, target_id):
+        """Ganti pemilik sebelum penulis memperoleh lock."""
         await db.execute(update(Class).where(Class.id == target_id).values(lecturer_id=other_id)
                          .execution_options(synchronize_session=False))
         await original_lock(session, target_id)
@@ -356,6 +386,7 @@ async def test_scores_recheck_class_owner_after_lock(grading_context, monkeypatc
 
 @pytest.mark.asyncio
 async def test_enrollment_removed_before_lock_returns_not_found(grading_context, monkeypatch):
+    """Tolak enrollment yang terhapus sebelum lock."""
     from sqlalchemy import delete
     from app.repositories import component as component_repo
 
@@ -363,6 +394,7 @@ async def test_enrollment_removed_before_lock_returns_not_found(grading_context,
     original_lock = component_repo.lock_class
 
     async def delete_before_lock(session, target_id):
+        """Hapus enrollment sebelum penulis memperoleh lock."""
         await db.execute(delete(Enrollment).where(Enrollment.id == uuid.UUID(enrollments[0]))
                          .execution_options(synchronize_session=False))
         await original_lock(session, target_id)
@@ -374,6 +406,7 @@ async def test_enrollment_removed_before_lock_returns_not_found(grading_context,
 
 @pytest.mark.asyncio
 async def test_concurrent_writers_keep_last_score_and_recompute_final(monkeypatch):
+    """Hitung ulang total dari skor penulis terakhir."""
     from sqlalchemy import delete
     from app.database import AsyncSessionLocal
     from app.models.component import Component
@@ -413,6 +446,7 @@ async def test_concurrent_writers_keep_last_score_and_recompute_final(monkeypatc
         call_count = 0
 
         async def ordered_lock(db, target_id):
+            """Atur pertemuan transaksi untuk uji urutan lock."""
             nonlocal call_count
             call_count += 1
             if call_count == 1:

@@ -1,4 +1,10 @@
-"""Tests for classes, enrollments, roster, and lecturer access scoping."""
+"""Tests for classes, enrollments, roster, and lecturer access scoping.
+
+Pengelolaan kelas dan keikutsertaan mahasiswa lintas role.
+
+Memerlukan PostgreSQL disposable yang sudah dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import uuid
 
@@ -16,12 +22,14 @@ from app.models.user import User
 
 
 async def _login(client: AsyncClient, email: str, password: str) -> str:
+    """Login melalui API untuk mendapat token skenario."""
     r = await client.post("/auth/login", json={"email": email, "password": password})
     assert r.status_code == 200, r.text
     return r.json()["access_token"]
 
 
 def _headers(token: str) -> dict[str, str]:
+    """Bentuk header bearer dari token skenario."""
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -31,6 +39,7 @@ async def _cleanup(
     nims: list[str],
     user_emails: list[str],
 ) -> None:
+    """Hapus data skenario sesuai urutan relasi."""
     async with AsyncSessionLocal() as session:
         if class_ids:
             class_uuids = [uuid.UUID(cid) for cid in class_ids]
@@ -54,6 +63,7 @@ async def _cleanup(
 async def _create_lecturer(
     client: AsyncClient, headers: dict[str, str], email: str, name: str
 ) -> str:
+    """Siapkan dosen terpisah untuk pemeriksaan pemilik."""
     r = await client.post(
         "/admin/users",
         headers=headers,
@@ -71,6 +81,7 @@ async def _create_lecturer(
 async def _create_course(
     client: AsyncClient, headers: dict[str, str], code: str
 ) -> str:
+    """Siapkan mata kuliah prasyarat milik skenario."""
     r = await client.post(
         "/courses",
         headers=headers,
@@ -87,6 +98,7 @@ async def _create_course(
 
 @pytest.mark.asyncio
 async def test_class_enrollment_roster_and_delete_flow():
+    """Lindungi relasi roster sepanjang alur CRUD kelas."""
     suffix = uuid.uuid4().hex[:8]
     lecturer_email = f"dosen-kelas-{suffix}@example.com"
     course_code = f"KLS{suffix}".upper()
@@ -296,6 +308,7 @@ async def test_class_enrollment_roster_and_delete_flow():
 
 @pytest.mark.asyncio
 async def test_class_lecturer_scoping_and_superadmin_override():
+    """Batasi dosen pada kelas miliknya dan izinkan admin."""
     suffix = uuid.uuid4().hex[:8]
     email1 = f"dosen-satu-{suffix}@example.com"
     email2 = f"dosen-dua-{suffix}@example.com"
@@ -465,6 +478,7 @@ async def test_class_lecturer_scoping_and_superadmin_override():
 
 @pytest.mark.asyncio
 async def test_classes_require_authentication():
+    """Tolak request kelas anonim sebelum akses domain."""
     async with AsyncClient(app=app, base_url="http://test") as c:
         r = await c.get("/classes")
         assert r.status_code == 401

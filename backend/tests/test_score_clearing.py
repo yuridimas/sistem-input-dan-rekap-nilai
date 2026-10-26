@@ -1,4 +1,10 @@
-"""Clearing draft scores preserves atomicity and release protections."""
+"""Clearing draft scores preserves atomicity and release protections.
+
+Penghapusan skor draft yang atomik dan proteksi rilis.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 from decimal import Decimal
 import uuid
@@ -11,6 +17,7 @@ from tests.test_finalization import fill_scores, mock_publisher
 
 @pytest.mark.asyncio
 async def test_clear_and_upsert_recalculate_preserving_omitted_and_zero(grading_context):
+    """Null, nol, dan field absen dibedakan dalam patch yang sama."""
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
     url = f"/enrollments/{enrollments[0]}/scores"
     assert (await client.put(url, headers=owner, json=score_payload(components))).status_code == 200
@@ -25,6 +32,7 @@ async def test_clear_and_upsert_recalculate_preserving_omitted_and_zero(grading_
 
 @pytest.mark.asyncio
 async def test_clear_absent_scores_is_idempotent_and_blocks_release(grading_context, monkeypatch):
+    """Hapus skor absen tanpa membuat kelas lengkap."""
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
     mock_publisher(monkeypatch)
     for _ in range(2):
@@ -40,6 +48,7 @@ async def test_clear_absent_scores_is_idempotent_and_blocks_release(grading_cont
 @pytest.mark.asyncio
 @pytest.mark.parametrize("invalid", ["101", "-1", "0.001", "NaN", True])
 async def test_clear_with_invalid_score_does_not_delete_anything(grading_context, invalid):
+    """Batalkan penghapusan jika patch lainnya invalid."""
     client, class_id, enrollments, components, (owner, _, _), _db = grading_context
     url = f"/enrollments/{enrollments[0]}/scores"
     await client.put(url, headers=owner, json=score_payload(components))
@@ -52,6 +61,7 @@ async def test_clear_with_invalid_score_does_not_delete_anything(grading_context
 
 @pytest.mark.asyncio
 async def test_clear_requires_access_and_known_component(grading_context):
+    """Hapus tetap memeriksa pemilik dan komponen kelas yang tepat."""
     client, class_id, enrollments, components, (owner, other, admin), _db = grading_context
     url = f"/enrollments/{enrollments[0]}/scores"
     payload = {components[0]["id"]: None}
@@ -63,6 +73,7 @@ async def test_clear_requires_access_and_known_component(grading_context):
 
 @pytest.mark.asyncio
 async def test_finalized_score_cannot_be_cleared(grading_context, monkeypatch):
+    """Skor rilis tidak boleh dikosongkan melalui payload null."""
     client, class_id, enrollments, components, (owner, _, admin), _db = grading_context
     mock_publisher(monkeypatch)
     await fill_scores(grading_context)

@@ -1,3 +1,8 @@
+"""Login, rotasi token, dan batas role endpoint.
+
+Memerlukan PostgreSQL disposable yang sudah dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 import uuid
 
 import pytest
@@ -12,6 +17,7 @@ from app.services.auth import hash_password
 
 @pytest.mark.asyncio
 async def test_login_success():
+    """Pastikan login menerbitkan kedua token sesi."""
     async with AsyncClient(app=app, base_url="http://test") as c:
         r = await c.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
     assert r.status_code == 200, r.text
@@ -22,6 +28,7 @@ async def test_login_success():
 
 @pytest.mark.asyncio
 async def test_login_bad_creds():
+    """Tolak token untuk kredensial yang salah."""
     async with AsyncClient(app=app, base_url="http://test") as c:
         r = await c.post("/auth/login", json={"email": "admin@example.com", "password": "wrong"})
     assert r.status_code == 401
@@ -29,6 +36,8 @@ async def test_login_bad_creds():
 
 @pytest.mark.asyncio
 async def test_login_missing():
+    """Payload kosong harus menjadi error input, bukan kegagalan server.
+    """
     async with AsyncClient(app=app, base_url="http://test") as c:
         r = await c.post("/auth/login", json={})
     assert r.status_code == 422
@@ -36,6 +45,7 @@ async def test_login_missing():
 
 @pytest.mark.asyncio
 async def test_me_and_refresh():
+    """Pertahankan identitas dan rotasi token akses."""
     async with AsyncClient(app=app, base_url="http://test") as c:
         r = await c.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
         tokens = r.json()
@@ -51,6 +61,7 @@ async def test_me_and_refresh():
 
 @pytest.mark.asyncio
 async def test_role_guard_forbidden():
+    """Tolak role dosen pada endpoint superadmin."""
     email = f"lect-{uuid.uuid4()}@example.com"
     async with AsyncSessionLocal() as session:
         user = User(
@@ -76,6 +87,7 @@ async def test_role_guard_forbidden():
     # register a temporary superadmin-only endpoint on the app
     @app.get("/_test_admin_only")
     async def _admin_only(user=Depends(require_role("superadmin"))):
+        """Pisahkan uji role dari aturan bisnis resource."""
         return {"ok": True}
 
     async with AsyncClient(app=app, base_url="http://test") as c:

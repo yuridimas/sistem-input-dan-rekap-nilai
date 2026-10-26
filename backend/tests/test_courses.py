@@ -1,4 +1,10 @@
-"""Tests for course CRUD and lecturer access scoping."""
+"""Tests for course CRUD and lecturer access scoping.
+
+CRUD mata kuliah dan cakupan pemilik.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import uuid
 
@@ -13,16 +19,19 @@ from app.models.user import User
 
 
 async def _login(client: AsyncClient, email: str, password: str) -> str:
+    """Login melalui API untuk mendapat token skenario."""
     r = await client.post("/auth/login", json={"email": email, "password": password})
     assert r.status_code == 200, r.text
     return r.json()["access_token"]
 
 
 def _headers(token: str) -> dict[str, str]:
+    """Bentuk header bearer dari token skenario."""
     return {"Authorization": f"Bearer {token}"}
 
 
 async def _cleanup(course_ids: list[str], user_emails: list[str]) -> None:
+    """Hapus data skenario sesuai urutan relasi."""
     async with AsyncSessionLocal() as session:
         if course_ids:
             await session.execute(
@@ -35,6 +44,7 @@ async def _cleanup(course_ids: list[str], user_emails: list[str]) -> None:
 
 @pytest.mark.asyncio
 async def test_course_crud_as_superadmin():
+    """Uji persistence, konflik, dan proteksi hapus admin."""
     suffix = uuid.uuid4().hex[:8]
     code = f"IF{suffix}".upper()
     other_code = f"SI{suffix}".upper()
@@ -125,6 +135,7 @@ async def test_course_crud_as_superadmin():
 
 @pytest.mark.asyncio
 async def test_lecturer_course_access_scoping():
+    """Isolasi akses mata kuliah berdasarkan kepemilikan."""
     suffix = uuid.uuid4().hex[:8]
     email1 = f"dosen1-{suffix}@example.com"
     email2 = f"dosen2-{suffix}@example.com"
@@ -235,6 +246,7 @@ async def test_lecturer_course_access_scoping():
 
 @pytest.mark.asyncio
 async def test_courses_require_authentication():
+    """Tolak akses mata kuliah tanpa sesi."""
     async with AsyncClient(app=app, base_url="http://test") as c:
         r = await c.get("/courses")
         assert r.status_code == 401

@@ -1,4 +1,10 @@
-"""Verify that application tables and columns have database comments."""
+"""Verify that application tables and columns have database comments.
+
+Audit komentar tabel/kolom PostgreSQL, bukan komentar pada source code.
+
+CLI membaca konfigurasi backend dan mengembalikan exit code untuk
+pemeriksaan deployment.
+"""
 
 import asyncio
 import sys
@@ -13,6 +19,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.config import get_settings
 
 
+# Katalog pg_class/pg_attribute menyimpan komentar; kolom dropped dan alembic_version diabaikan.
 COMMENTS_QUERY = text(
     """
     SELECT
@@ -43,7 +50,19 @@ COMMENTS_QUERY = text(
 
 
 def find_missing_comments(rows: Sequence[Mapping[str, object]]) -> list[str]:
-    """Return application tables and columns whose comments are null or blank."""
+    """Laporkan tabel sekali dan setiap kolom berkomentar kosong.
+
+    Return application tables and columns whose comments are null or
+    blank.
+
+    Membaca rows tanpa mutasi atau akses DB.
+
+    Args:
+        rows: Baris katalog berisi nama tabel/kolom beserta komentarnya.
+
+    Returns:
+        Daftar pesan bisa kosong.
+    """
     missing: list[str] = []
     checked_tables: set[tuple[str, str]] = set()
 
@@ -64,6 +83,13 @@ def find_missing_comments(rows: Sequence[Mapping[str, object]]) -> list[str]:
 
 
 async def verify_database() -> int:
+    """Audit komentar katalog public dan tolak schema kosong.
+
+    Hanya SELECT DB dan output stdout/stderr, engine ditutup.
+
+    Returns:
+        Exit code 0 sukses, 1 gagal.
+    """
     engine = create_async_engine(get_settings().database_url)
     try:
         async with engine.connect() as connection:

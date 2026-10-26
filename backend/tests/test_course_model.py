@@ -1,4 +1,10 @@
-"""Tests for the Course model and its database comments."""
+"""Tests for the Course model and its database comments.
+
+Model mata kuliah dan komentar PostgreSQL.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import uuid
 
@@ -12,6 +18,7 @@ from app.models.user import User, UserRole
 
 @pytest.mark.asyncio
 async def test_course_model_insert_and_comments():
+    """Periksa metadata pada database hasil migration."""
     email = f"course-model-{uuid.uuid4()}@example.com"
     async with AsyncSessionLocal() as session:
         creator = User(

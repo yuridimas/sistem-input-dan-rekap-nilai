@@ -1,4 +1,10 @@
-"""Tests for superadmin user management (lecturer CRUD)."""
+"""Tests for superadmin user management (lecturer CRUD).
+
+Administrasi dosen yang dibatasi superadmin.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import uuid
 
@@ -12,6 +18,7 @@ from app.models.user import User
 
 
 async def _admin_token(client: AsyncClient) -> str:
+    """Login dengan akun admin lingkungan disposable."""
     r = await client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
     assert r.status_code == 200, r.text
     return r.json()["access_token"]
@@ -19,6 +26,7 @@ async def _admin_token(client: AsyncClient) -> str:
 
 @pytest.mark.asyncio
 async def test_create_list_get_update_deactivate_lecturer():
+    """Nonaktifkan akun tanpa menghapus relasi historis."""
     email = f"dosen-{uuid.uuid4()}@example.com"
     new_email = f"dosen-baru-{uuid.uuid4()}@example.com"
     created_id: str | None = None
@@ -90,6 +98,8 @@ async def test_create_list_get_update_deactivate_lecturer():
 
 @pytest.mark.asyncio
 async def test_duplicate_email_conflict():
+    """Email ganda menjadi konflik domain, bukan error database mentah.
+    """
     email = f"dupe-{uuid.uuid4()}@example.com"
     created_ids: list[str] = []
     async with AsyncClient(app=app, base_url="http://test") as c:
@@ -114,6 +124,7 @@ async def test_duplicate_email_conflict():
 
 @pytest.mark.asyncio
 async def test_lecturer_forbidden():
+    """Dosen dengan sesi valid tetap tidak dapat memakai route admin."""
     email = f"onlydosen-{uuid.uuid4()}@example.com"
     created_id: str | None = None
     async with AsyncClient(app=app, base_url="http://test") as c:

@@ -1,7 +1,12 @@
+"""Unit audit metadata komentar tanpa koneksi DB.
+
+Unit test memakai dependency palsu/data lokal tanpa DB atau SMTP nyata.
+"""
 from scripts.verify_comments import find_missing_comments
 
 
 def test_find_missing_comments_reports_table_and_column():
+    """Laporkan tabel sekali meskipun banyak kolom kosong."""
     rows = [
         {
             "table_schema": "public",
@@ -26,6 +31,7 @@ def test_find_missing_comments_reports_table_and_column():
 
 
 def test_find_missing_comments_accepts_indonesian_comments():
+    """Terima komentar Indonesia yang sudah terisi."""
     rows = [
         {
             "table_schema": "public",

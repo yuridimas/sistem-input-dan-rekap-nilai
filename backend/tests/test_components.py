@@ -1,4 +1,10 @@
-"""Component configuration, exact weights, and class access boundaries."""
+"""Component configuration, exact weights, and class access boundaries.
+
+Keutuhan konfigurasi komponen dan proteksi perubahan paralel.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import uuid
 from decimal import Decimal
@@ -19,6 +25,7 @@ from app.services.auth import decode_token
 
 
 def component_set(uts="30", uas="40", tugas="30"):
+    """Bangun kategori wajib dengan bobot yang dapat diubah."""
     return [
         {"name": "Tugas", "category": "tugas", "weight": tugas, "order_index": 0},
         {"name": "UTS", "category": "uts", "weight": uts, "order_index": 1},
@@ -28,6 +35,7 @@ def component_set(uts="30", uas="40", tugas="30"):
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def component_context():
+    """Isolasi commit endpoint melalui transaksi savepoint."""
     # API commits use savepoints; all data is rolled back at fixture teardown.
     async with engine.connect() as connection:
         transaction = await connection.begin()
@@ -53,6 +61,7 @@ async def component_context():
             await db.commit()
 
             async def override_db():
+                """Pinjamkan session fixture ke dependency endpoint."""
                 yield db
 
             app.dependency_overrides[get_db] = override_db
@@ -70,6 +79,7 @@ async def component_context():
 
 @pytest.mark.asyncio
 async def test_components_create_list_update_and_reject_invalid_delete(component_context):
+    """Pertahankan konfigurasi valid selama mutasi komponen."""
     client, class_id, (owner, _, admin), _db = component_context
     url = f"/classes/{class_id}/components"
     assert (await client.get(url, headers=owner)).json() == []
@@ -116,6 +126,7 @@ async def test_components_create_list_update_and_reject_invalid_delete(component
     [],
 ])
 async def test_components_reject_invalid_sets_atomically(component_context, payload):
+    """Tolak konfigurasi invalid tanpa insert parsial."""
     client, class_id, (owner, _, _), _db = component_context
     url = f"/classes/{class_id}/components"
     response = await client.post(url, headers=owner, json=payload)
@@ -125,6 +136,7 @@ async def test_components_reject_invalid_sets_atomically(component_context, payl
 
 @pytest.mark.asyncio
 async def test_components_require_class_owner_or_admin(component_context):
+    """Batasi konfigurasi pada pemilik kelas atau admin."""
     client, class_id, (owner, other, admin), _db = component_context
     url = f"/classes/{class_id}/components"
     assert (await client.get(url)).status_code == 401
@@ -142,6 +154,7 @@ async def test_components_require_class_owner_or_admin(component_context):
 
 @pytest.mark.asyncio
 async def test_components_decimal_roundtrip_and_comments(component_context):
+    """Pertahankan Decimal dan metadata setelah persistence."""
     client, class_id, (owner, _, _), db = component_context
     response = await client.post(f"/classes/{class_id}/components", headers=owner,
                                  json=component_set(uts="33.33", uas="33.34", tugas="33.33"))
@@ -159,6 +172,7 @@ async def test_components_decimal_roundtrip_and_comments(component_context):
 
 @pytest.mark.asyncio
 async def test_components_replace_set_preserves_ids_and_is_atomic(component_context):
+    """Pertahankan ID saat mengganti konfigurasi atomik."""
     client, class_id, (owner, other, _), _db = component_context
     url = f"/classes/{class_id}/components"
     rows = (await client.post(url, headers=owner, json=component_set())).json()
@@ -191,6 +205,7 @@ async def test_components_replace_set_preserves_ids_and_is_atomic(component_cont
 @pytest.mark.parametrize("payload", [{"name": None}, {"weight": None}, {"max_score": "0"},
                                          {"name": " "}, {"weight": "29.9999"}])
 async def test_components_invalid_patch_leaves_data_unchanged(component_context, payload):
+    """Tolak patch invalid sebelum mutasi field lainnya."""
     client, class_id, (owner, _, _), _db = component_context
     url = f"/classes/{class_id}/components"
     rows = (await client.post(url, headers=owner, json=component_set())).json()
@@ -202,6 +217,7 @@ async def test_components_invalid_patch_leaves_data_unchanged(component_context,
 @pytest.mark.asyncio
 @pytest.mark.parametrize("operation", ["create", "update", "delete", "replace"])
 async def test_components_check_current_owner_after_class_lock(component_context, monkeypatch, operation):
+    """Periksa pemilik terbaru setelah lock kelas."""
     from app.repositories import component as repo
 
     client, class_id, (owner, other, _), db = component_context
@@ -211,6 +227,7 @@ async def test_components_check_current_owner_after_class_lock(component_context
     original_lock = repo.lock_class
 
     async def transfer_before_lock(session, target_id):
+        """Pindahkan pemilik sebelum lock diambil."""
         # Simulate an admin reassignment committed before the mutation's lock.
         await db.execute(
             update(Class).where(Class.id == target_id).values(lecturer_id=other_id)
@@ -234,6 +251,7 @@ async def test_components_check_current_owner_after_class_lock(component_context
 
 @pytest.mark.asyncio
 async def test_component_removed_before_lock_returns_not_found(component_context, monkeypatch):
+    """Tolak mutasi komponen yang terhapus sebelum lock."""
     from app.models.component import Component
     from app.repositories import component as repo
 
@@ -244,6 +262,7 @@ async def test_component_removed_before_lock_returns_not_found(component_context
     original_lock = repo.lock_class
 
     async def replace_before_lock(session, target_class_id):
+        """Hapus komponen lewat penggantian sebelum lock."""
         # A concurrent valid set replacement removes Tugas and reweights UTS/UAS.
         await db.execute(delete(Component).where(Component.id == target_id)
                          .execution_options(synchronize_session=False))

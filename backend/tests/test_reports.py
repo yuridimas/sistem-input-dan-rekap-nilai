@@ -1,4 +1,12 @@
-"""Final-only PDF downloads, access boundaries, and real rendered content."""
+"""Uji export PDF/XLSX final dan batas akses laporan.
+
+Final-only PDF downloads, access boundaries, and real rendered content.
+
+Export final, keamanan rendering, dan integritas unduhan.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import io
 import threading
@@ -22,6 +30,7 @@ from tests.test_scores import grading_context
 
 
 def pdf_text(response):
+    """Validasi unduhan PDF lalu ekstrak teks untuk assertion."""
     from pypdf import PdfReader
 
     assert response.status_code == 200, response.text
@@ -32,6 +41,7 @@ def pdf_text(response):
 
 
 async def finalize(context, monkeypatch):
+    """Siapkan rilis resmi melalui API dan publisher palsu."""
     client, class_id, _enrollments, _components, (owner, _, _), _db = context
     mock_publisher(monkeypatch)
     await fill_scores(context)
@@ -41,6 +51,7 @@ async def finalize(context, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_student_pdf_has_component_details_and_attachment(grading_context, monkeypatch):
+    """Sertakan rincian resmi dalam attachment PDF individu."""
     client, _class_id, enrollments, components, (owner, _, _), db = grading_context
     await finalize(grading_context, monkeypatch)
     enrollment = await db.get(Enrollment, uuid.UUID(enrollments[0]))
@@ -56,6 +67,7 @@ async def test_student_pdf_has_component_details_and_attachment(grading_context,
 
 @pytest.mark.asyncio
 async def test_class_pdf_is_summary_and_institution_name_is_configurable(grading_context, monkeypatch):
+    """Jaga rekap ringkas dan nama institusi dari konfigurasi."""
     from app.config import Settings
 
     client, class_id, _enrollments, _components, (_, _, admin), _db = grading_context
@@ -72,6 +84,7 @@ async def test_class_pdf_is_summary_and_institution_name_is_configurable(grading
 
 @pytest.mark.asyncio
 async def test_class_xlsx_contains_finalized_roster_components_and_safe_text(grading_context, monkeypatch):
+    """Pertahankan teks aman dan rincian final dalam XLSX."""
     client, class_id, enrollments, components, (owner, _, _), db = grading_context
     await finalize(grading_context, monkeypatch)
     student_id = await db.scalar(select(Enrollment.student_id).where(Enrollment.id == uuid.UUID(enrollments[0])))
@@ -109,6 +122,7 @@ async def test_class_xlsx_contains_finalized_roster_components_and_safe_text(gra
 
 @pytest.mark.asyncio
 async def test_class_xlsx_is_readonly_batched_and_offloaded(grading_context, monkeypatch):
+    """Uji query batch, offload, dan export XLSX read-only."""
     from app.services import reports
 
     client, class_id, _ids, _components, (owner, _, _), db = grading_context
@@ -118,13 +132,16 @@ async def test_class_xlsx_is_readonly_batched_and_offloaded(grading_context, mon
     original = reports._render_xlsx
 
     def render(report):
+        """Kendalikan hasil renderer dan amati thread pemanggil."""
         assert threading.get_ident() != main_thread
         return original(report)
 
     def record(_conn, _cursor, statement, _params, _context, _many):
+        """Catat statement untuk uji anggaran query."""
         calls.append(statement)
 
     def committed(_session):
+        """Amati commit untuk membuktikan export read-only."""
         commits.append(True)
 
     monkeypatch.setattr(reports, "_render_xlsx", render)
@@ -143,6 +160,7 @@ async def test_class_xlsx_is_readonly_batched_and_offloaded(grading_context, mon
 
 @pytest.mark.asyncio
 async def test_class_xlsx_rejects_empty_and_partially_finalized_classes(grading_context):
+    """Tolak XLSX untuk roster kosong atau belum final."""
     client, class_id, enrollments, _components, (owner, _, _), db = grading_context
     url = f"/reports/class/{class_id}/xlsx"
     assert (await client.get(url, headers=owner)).status_code == 409
@@ -157,6 +175,8 @@ async def test_class_xlsx_rejects_empty_and_partially_finalized_classes(grading_
 
 @pytest.mark.asyncio
 async def test_pdf_authorization_and_finalized_only(grading_context, monkeypatch):
+    """PDF hanya tersedia setelah finalisasi dan pemeriksaan hak baca.
+    """
     client, class_id, enrollments, _components, (owner, other, admin), _db = grading_context
     urls = (f"/reports/student/{enrollments[0]}/pdf", f"/reports/class/{class_id}/pdf",
             f"/reports/class/{class_id}/xlsx")
@@ -179,6 +199,7 @@ async def test_pdf_authorization_and_finalized_only(grading_context, monkeypatch
 
 @pytest.mark.asyncio
 async def test_pdf_zero_boundary_legacy_rank_and_html_are_preserved(grading_context, monkeypatch):
+    """Render nol, batas lulus, rank kosong, dan HTML aman."""
     client, class_id, enrollments, _components, (owner, _, _), db = grading_context
     await finalize(grading_context, monkeypatch)
     student_id = await db.scalar(select(Enrollment.student_id).where(Enrollment.id == uuid.UUID(enrollments[0])))
@@ -200,6 +221,7 @@ async def test_pdf_zero_boundary_legacy_rank_and_html_are_preserved(grading_cont
 
 @pytest.mark.asyncio
 async def test_empty_or_partially_finalized_class_is_not_exportable(grading_context):
+    """Tolak export jika roster kosong atau masih draft."""
     client, class_id, enrollments, _components, (owner, _, _), db = grading_context
     db.add(Grade(enrollment_id=uuid.UUID(enrollments[0]), final_score=50, status="finalized"))
     await db.commit()
@@ -212,12 +234,14 @@ async def test_empty_or_partially_finalized_class_is_not_exportable(grading_cont
 
 @pytest.mark.asyncio
 async def test_unavailable_renderer_returns_503_without_breaking_other_routes(grading_context, monkeypatch):
+    """Runtime PDF absen memberi 503 tanpa mematikan route lainnya."""
     from app.services import reports
 
     client, class_id, _ids, _components, (owner, _, _), _db = grading_context
     await finalize(grading_context, monkeypatch)
 
     def missing():
+        """Simulasikan renderer absen tanpa uninstall package."""
         raise OSError("Pango missing")
 
     monkeypatch.setattr(reports, "_load_weasyprint", missing)
@@ -228,6 +252,7 @@ async def test_unavailable_renderer_returns_503_without_breaking_other_routes(gr
 
 @pytest.mark.asyncio
 async def test_render_offload_query_budget_and_readonly_export(grading_context, monkeypatch):
+    """Uji offload dan query export PDF yang read-only."""
     from app.services import reports
 
     client, class_id, _ids, _components, (owner, _, _), db = grading_context
@@ -238,13 +263,16 @@ async def test_render_offload_query_budget_and_readonly_export(grading_context, 
     original = reports._render_pdf
 
     def render(*args, **kwargs):
+        """Kendalikan hasil renderer dan amati thread pemanggil."""
         assert threading.get_ident() != main_thread
         return original(*args, **kwargs)
 
     def record(_conn, _cursor, statement, _params, _context, _many):
+        """Catat statement untuk uji anggaran query."""
         calls.append(statement)
 
     def committed(_session):
+        """Amati commit untuk membuktikan export read-only."""
         commits.append(True)
 
     monkeypatch.setattr(reports, "_render_pdf", render)
@@ -263,6 +291,7 @@ async def test_render_offload_query_budget_and_readonly_export(grading_context, 
 
 @pytest.mark.parametrize("url", ["https://example.com/logo.png", "http://127.0.0.1/private", "file:///etc/passwd", "data:text/html,test"])
 def test_renderer_rejects_external_resources(url):
+    """Tolak resource jaringan/file dari renderer laporan."""
     from app.services.reports import reject_resource
 
     with pytest.raises(ValueError):
@@ -271,6 +300,7 @@ def test_renderer_rejects_external_resources(url):
 
 @pytest.mark.asyncio
 async def test_class_pdf_multiple_pages_repeats_headers_and_keeps_all_rows(grading_context, monkeypatch):
+    """Pertahankan baris dan header PDF lintas halaman."""
     from pypdf import PdfReader
 
     client, class_id, _enrollments, _components, (owner, _, _), db = grading_context
@@ -297,6 +327,7 @@ async def test_class_pdf_multiple_pages_repeats_headers_and_keeps_all_rows(gradi
 
 @pytest.mark.asyncio
 async def test_student_component_table_can_span_pages(grading_context, monkeypatch):
+    """Pertahankan rincian individu lintas halaman."""
     from pypdf import PdfReader
     from app.schemas.reports import ReportComponent
     from app.services.reports import load_student_report, render_pdf

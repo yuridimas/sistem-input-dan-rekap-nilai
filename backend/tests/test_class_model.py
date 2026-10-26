@@ -1,4 +1,14 @@
-"""Tests for the Class, Student, and Enrollment models and their DB comments."""
+"""Uji relasi kelas/roster dan komentar database.
+
+Tests for the Class, Student, and Enrollment models and their DB
+comments.
+
+Persistence relasi kelas/mahasiswa/enrollment serta komentar katalog
+PostgreSQL.
+
+Memerlukan PostgreSQL disposable yang sudah dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import uuid
 
@@ -14,6 +24,7 @@ from app.models.user import User, UserRole
 
 
 async def _column_comments(session, table_name: str) -> list[tuple[str, str | None]]:
+    """Baca komentar kolom dari katalog PostgreSQL."""
     result = await session.execute(
         text(
             """
@@ -33,6 +44,7 @@ async def _column_comments(session, table_name: str) -> list[tuple[str, str | No
 
 
 async def _table_comment(session, table_name: str) -> str | None:
+    """Baca komentar tabel dari katalog PostgreSQL."""
     result = await session.execute(
         text(
             """
@@ -49,6 +61,7 @@ async def _table_comment(session, table_name: str) -> str | None:
 
 @pytest.mark.asyncio
 async def test_class_student_enrollment_model_and_comments():
+    """Periksa relasi dan komentar schema hasil migration."""
     suffix = uuid.uuid4().hex[:8]
     email = f"class-model-{suffix}@example.com"
     async with AsyncSessionLocal() as session:

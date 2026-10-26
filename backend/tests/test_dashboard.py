@@ -1,4 +1,10 @@
-"""Dashboard visibility, class release semantics, and batched reads."""
+"""Dashboard visibility, class release semantics, and batched reads.
+
+Agregasi dashboard berdasarkan penugasan dan rilis.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -22,6 +28,7 @@ from app.services.auth import create_access_token
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def dashboard_context():
+    """Siapkan variasi pemilik dan status kelas."""
     async with engine.connect() as connection:
         transaction = await connection.begin()
         try:
@@ -41,6 +48,7 @@ async def dashboard_context():
                 await db.flush()
 
                 async def add_class(course, lecturer, section, statuses, released_at=None):
+                    """Siapkan variasi kelas pending dan released."""
                     class_ = Class(course_id=course.id, lecturer_id=lecturer.id,
                                    section=section, academic_year="2026/2027")
                     db.add(class_)
@@ -72,6 +80,8 @@ async def dashboard_context():
                            for user in users]
 
                 async def override_db():
+                    """Pinjamkan session fixture ke dependency endpoint.
+                    """
                     yield db
 
                 app.dependency_overrides[get_db] = override_db
@@ -86,6 +96,7 @@ async def dashboard_context():
 
 @pytest.mark.asyncio
 async def test_dashboard_lecturer_counts_assigned_not_created_courses(dashboard_context):
+    """Hitung penugasan dosen tanpa bergantung pencipta."""
     client, _, _, courses, classes, headers, _ = dashboard_context
     response = await client.get("/dashboard/summary", headers=headers[0])
     assert response.status_code == 200, response.text
@@ -105,6 +116,7 @@ async def test_dashboard_lecturer_counts_assigned_not_created_courses(dashboard_
 
 @pytest.mark.asyncio
 async def test_dashboard_admin_includes_unassigned_courses_and_other_lecturers(dashboard_context):
+    """Sertakan kelas lintas dosen dan mata kuliah tanpa kelas."""
     client, _, _, courses, classes, headers, _ = dashboard_context
     data = (await client.get("/dashboard/summary", headers=headers[2])).json()
     assert (data["course_count"], data["class_count"], data["pending_class_count"]) == (3, 6, 4)
@@ -116,6 +128,7 @@ async def test_dashboard_admin_includes_unassigned_courses_and_other_lecturers(d
 
 @pytest.mark.asyncio
 async def test_dashboard_empty_account(dashboard_context):
+    """Kembalikan hasil kosong untuk akun tanpa penugasan."""
     client, _, _, _, _, headers, _ = dashboard_context
     response = await client.get("/dashboard/summary", headers=headers[3])
     assert response.status_code == 200
@@ -126,6 +139,7 @@ async def test_dashboard_empty_account(dashboard_context):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("user_index,expected", [(None, 401), (4, 401), (5, 403)])
 async def test_dashboard_requires_active_supported_role(dashboard_context, user_index, expected):
+    """Tolak akun nonaktif dan role yang tak didukung."""
     client, _, _, _, _, headers, _ = dashboard_context
     response = await client.get("/dashboard/summary", headers={} if user_index is None else headers[user_index])
     assert response.status_code == expected
@@ -133,6 +147,7 @@ async def test_dashboard_requires_active_supported_role(dashboard_context, user_
 
 @pytest.mark.asyncio
 async def test_dashboard_recent_release_limit_and_deterministic_order(dashboard_context):
+    """Batasi lima rilis dengan tie-break deterministik."""
     client, _, users, courses, _, headers, add_class = dashboard_context
     newest = datetime(2026, 10, 25, tzinfo=timezone.utc)
     added = [await add_class(courses[0], users[0], f"R{i}", ["finalized"], newest - timedelta(days=i // 2))
@@ -145,10 +160,12 @@ async def test_dashboard_recent_release_limit_and_deterministic_order(dashboard_
 
 @pytest.mark.asyncio
 async def test_dashboard_reads_in_constant_queries_without_writes(dashboard_context):
+    """Biaya query harus konstan dan GET tidak boleh menulis data."""
     client, _, users, courses, _, headers, add_class = dashboard_context
     statements = []
 
     def record(_conn, _cursor, statement, _parameters, _context, _executemany):
+        """Catat statement untuk uji anggaran query."""
         statements.append(statement)
 
     event.listen(engine.sync_engine, "before_cursor_execute", record)

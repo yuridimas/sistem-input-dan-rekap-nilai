@@ -1,3 +1,8 @@
+"""Persistence akun dan metadata komentar PostgreSQL.
+
+Memerlukan PostgreSQL disposable yang dimigrasi; beberapa skenario
+melakukan commit nyata.
+"""
 import uuid
 
 import pytest
@@ -9,6 +14,7 @@ from app.models.user import User, UserRole
 
 @pytest.mark.asyncio
 async def test_user_model_insert_and_comments():
+    """Periksa default akun dan komentar kolom pada DB."""
     email = f"test-{uuid.uuid4()}@example.com"
     async with AsyncSessionLocal() as session:
         user = User(
