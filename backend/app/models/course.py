@@ -1,4 +1,8 @@
-"""Course model."""
+"""Course model.
+
+Identitas mata kuliah yang dirujuk kelas dan pemeriksaan hak ubah
+service.
+"""
 
 import uuid
 from datetime import datetime
@@ -11,6 +15,8 @@ from app.models import Base
 
 
 class Course(Base):
+    """Mata kuliah berkode unik dengan identitas pencipta."""
+
     __tablename__ = "courses"
     __table_args__ = {"comment": "Tabel mata kuliah"}
 

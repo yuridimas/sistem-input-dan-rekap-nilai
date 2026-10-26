@@ -1,4 +1,8 @@
-"""Computed grades and their release state."""
+"""Computed grades and their release state.
+
+Hasil kalkulasi yang dikelola service scores/finalisasi dan dibaca
+laporan.
+"""
 
 import uuid
 from datetime import datetime
@@ -13,11 +17,15 @@ from app.models import Base
 
 
 class GradeStatus(StrEnum):
+    """Status draft atau final untuk penguncian hasil penilaian."""
+
     DRAFT = "draft"
     FINALIZED = "finalized"
 
 
 class Grade(Base):
+    """Total satu enrollment beserta jejak rilis dan notifikasi."""
+
     __tablename__ = "grades"
     __table_args__ = (
         CheckConstraint("status IN ('draft', 'finalized')", name="ck_grades_status"),

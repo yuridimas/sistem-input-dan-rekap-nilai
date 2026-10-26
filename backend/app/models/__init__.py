@@ -1,12 +1,20 @@
-"""SQLAlchemy declarative models."""
+"""SQLAlchemy declarative models.
+
+Registrasi model SQLAlchemy bagi repository dan metadata Alembic.
+"""
 
 from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
-    """Base class for all ORM models."""
+    """Base class for all ORM models.
+
+    Satukan metadata seluruh tabel; semua model aplikasi mewarisi
+    declarative base ini.
+    """
 
 
+# Base harus tersedia sebelum impor model yang kembali merujuk app.models.
 from app.models.class_ import Class  # noqa: E402
 from app.models.component import Component  # noqa: E402
 from app.models.course import Course  # noqa: E402

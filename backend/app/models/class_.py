@@ -1,4 +1,7 @@
-"""Class model."""
+"""Class model.
+
+Relasi kelas ke mata kuliah dan dosen untuk pembatasan akses dan roster.
+"""
 
 import uuid
 from datetime import datetime
@@ -11,6 +14,9 @@ from app.models import Base
 
 
 class Class(Base):
+    """Seksi per mata kuliah/tahun; kombinasi unik mencegah kelas ganda.
+    """
+
     __tablename__ = "classes"
     __table_args__ = (
         UniqueConstraint(

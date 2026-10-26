@@ -1,4 +1,8 @@
-"""Stored sequential class rankings at grade release."""
+"""Stored sequential class rankings at grade release.
+
+Snapshot ranking yang dibuat bersama finalisasi dan dibaca
+history/reports.
+"""
 
 import uuid
 from datetime import datetime
@@ -11,6 +15,12 @@ from app.models import Base
 
 
 class Ranking(Base):
+    """Posisi unik mahasiswa pada snapshot ranking kelas.
+
+    Tie-break deterministik menghasilkan posisi unik, bukan ranking
+    bersama.
+    """
+
     __tablename__ = "rankings"
     __table_args__ = (
         UniqueConstraint("class_id", "enrollment_id", name="uq_rankings_class_enrollment"),

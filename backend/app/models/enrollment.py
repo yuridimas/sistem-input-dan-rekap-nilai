@@ -1,4 +1,7 @@
-"""Enrollment model."""
+"""Enrollment model.
+
+Penghubung mahasiswa/kelas yang dirujuk skor, nilai akhir, dan ranking.
+"""
 
 import uuid
 from datetime import datetime
@@ -11,6 +14,8 @@ from app.models import Base
 
 
 class Enrollment(Base):
+    """Keikutsertaan unik mahasiswa pada satu kelas."""
+
     __tablename__ = "enrollments"
     __table_args__ = (
         UniqueConstraint(

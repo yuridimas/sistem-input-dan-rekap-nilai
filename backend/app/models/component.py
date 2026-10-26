@@ -1,4 +1,7 @@
-"""Grade components configured per class."""
+"""Grade components configured per class.
+
+Konfigurasi komponen yang dibaca service penilaian dan editor kelas.
+"""
 
 import uuid
 from datetime import datetime
@@ -13,6 +16,8 @@ from app.models import Base
 
 
 class ComponentCategory(StrEnum):
+    """Kategori komponen untuk kontrak schema dan aturan ujian."""
+
     TUGAS = "tugas"
     UTS = "uts"
     UAS = "uas"
@@ -20,6 +25,11 @@ class ComponentCategory(StrEnum):
 
 
 class Component(Base):
+    """Konfigurasi bobot dan maksimum komponen per kelas.
+
+    Total bobot antarbaris diperiksa service, bukan constraint tabel.
+    """
+
     __tablename__ = "components"
     __table_args__ = (
         CheckConstraint("weight > 0 AND weight <= 100", name="ck_components_weight"),

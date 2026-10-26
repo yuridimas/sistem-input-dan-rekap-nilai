@@ -1,4 +1,8 @@
-"""Student model."""
+"""Student model.
+
+Data mahasiswa untuk roster, laporan, dan tujuan notifikasi; terpisah
+dari akun.
+"""
 
 import uuid
 from datetime import datetime
@@ -11,6 +15,8 @@ from app.models import Base
 
 
 class Student(Base):
+    """Profil NIM global tanpa akun login mahasiswa."""
+
     __tablename__ = "students"
     __table_args__ = {
         "comment": "Tabel data mahasiswa (tanpa akun login)",

@@ -1,4 +1,10 @@
-"""Administrator delivery audit responses."""
+"""Administrator delivery audit responses.
+
+Respons audit/retry administratif untuk router notifications.
+
+Batas field pada schema menjaga input; aturan relasi dan otorisasi tetap
+berada di service.
+"""
 
 import uuid
 from datetime import datetime
@@ -9,6 +15,8 @@ from app.models.notification import NotificationStatus
 
 
 class NotificationRead(BaseModel):
+    """Status pengiriman dengan error dan waktu terkirim opsional."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID

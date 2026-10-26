@@ -1,4 +1,11 @@
-"""A nonempty mapping: decimal scores upsert, null clears a draft score."""
+"""A nonempty mapping: decimal scores upsert, null clears a draft score.
+
+Kontrak payload parsial router scores: UUID komponen ke Decimal atau
+None.
+
+Mapping wajib berisi perubahan; None menghapus skor, key absen
+mempertahankan skor lama.
+"""
 
 import uuid
 from decimal import Decimal

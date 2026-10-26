@@ -1,4 +1,7 @@
-"""Per-component scores and entry audit metadata."""
+"""Per-component scores and entry audit metadata.
+
+Skor mentah komponen yang menjadi masukan kalkulasi service grade.
+"""
 
 import uuid
 from datetime import datetime
@@ -12,6 +15,11 @@ from app.models import Base
 
 
 class Score(Base):
+    """Skor unik per enrollment dan komponen penilaian.
+
+    Maksimum skor bergantung komponen dan diperiksa service scores.
+    """
+
     __tablename__ = "scores"
     __table_args__ = (
         UniqueConstraint("enrollment_id", "component_id", name="uq_scores_enrollment_component"),

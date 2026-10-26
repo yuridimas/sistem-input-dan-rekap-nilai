@@ -1,4 +1,8 @@
-"""User model."""
+"""User model.
+
+Akun login dan identitas dosen yang dipakai dependency serta service
+otorisasi.
+"""
 
 import uuid
 from datetime import datetime
@@ -12,13 +16,22 @@ from app.models import Base
 
 
 class UserRole(str, Enum):
-    """Peran pengguna dalam sistem."""
+    """Peran pengguna dalam sistem.
+
+    Nilai role tersimpan yang dibaca pemeriksaan akses, bukan nama
+    tampilan UI.
+    """
 
     SUPERADMIN = "superadmin"
     LECTURER = "lecturer"
 
 
 class User(Base):
+    """Akun aktif/nonaktif dengan hash password dan role.
+
+    Penonaktifan mempertahankan relasi historis akun.
+    """
+
     __tablename__ = "users"
     __table_args__ = {"comment": "Tabel pengguna sistem (superadmin dan dosen)"}
 

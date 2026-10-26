@@ -1,4 +1,8 @@
-"""Persistent grade-release delivery status, one record per grade."""
+"""Persistent grade-release delivery status, one record per grade.
+
+Status pengiriman persisten untuk service notifications dan worker
+Celery.
+"""
 
 import uuid
 from datetime import datetime
@@ -12,12 +16,19 @@ from app.models import Base
 
 
 class NotificationStatus(StrEnum):
+    """Status pengiriman untuk audit dan retry admin."""
+
     QUEUED = "queued"
     SENT = "sent"
     FAILED = "failed"
 
 
 class Notification(Base):
+    """Catatan dispatch satu nilai dengan token generasi kirim.
+
+    dispatch_token membedakan generasi percobaan kirim.
+    """
+
     __tablename__ = "notifications"
     __table_args__ = (
         CheckConstraint("status IN ('queued', 'sent', 'failed')", name="ck_notifications_status"),

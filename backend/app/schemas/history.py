@@ -1,4 +1,10 @@
-"""Read-only views of released grades and their locked component data."""
+"""Read-only views of released grades and their locked component data.
+
+Kontrak riwayat final untuk router grades dan analytics mahasiswa.
+
+Batas field pada schema menjaga input; aturan relasi dan otorisasi tetap
+berada di service.
+"""
 
 import uuid
 from datetime import datetime
@@ -10,6 +16,8 @@ from app.models.component import ComponentCategory
 
 
 class HistoryCourseRead(BaseModel):
+    """Metadata mata kuliah untuk tampilan history tanpa lookup."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
@@ -20,6 +28,8 @@ class HistoryCourseRead(BaseModel):
 
 
 class HistoryClassRead(BaseModel):
+    """Identitas kelas/tahun pada satu hasil historis mahasiswa."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
@@ -28,6 +38,11 @@ class HistoryClassRead(BaseModel):
 
 
 class HistoryComponentRead(BaseModel):
+    """Rincian komponen final dengan skor yang boleh kosong.
+
+    None mempertahankan komponen yang tidak mempunyai entri skor.
+    """
+
     id: uuid.UUID
     name: str
     category: ComponentCategory
@@ -38,6 +53,8 @@ class HistoryComponentRead(BaseModel):
 
 
 class HistoryRead(BaseModel):
+    """Hasil final dengan alias JSON class untuk field class_."""
+
     model_config = ConfigDict(populate_by_name=True)
 
     grade_id: uuid.UUID
