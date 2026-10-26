@@ -1,3 +1,5 @@
+# Pengecualian tooling frontend untuk dependency, build output, log, dan setting editor lokal.
+# Melengkapi aturan root ketika tooling dijalankan dari direktori frontend.
 # Logs
 logs
 *.log

@@ -1,3 +1,5 @@
+# Topologi lokal dan staging/prod untuk database, API, worker, frontend, serta proxy.
+# Profile deployment menunggu migration sukses sebelum API/worker; volume DB lokal dipisahkan.
 services:
   db:
     image: postgres:18
@@ -23,6 +25,7 @@ services:
     command:
       - 'case "$$DEPLOYMENT_ENV" in staging|prod) ;; *) echo "Set DEPLOYMENT_ENV with the staging or prod environment file" >&2; exit 1 ;; esac; exec /usr/local/bin/docker-entrypoint.sh postgres'
     volumes:
+      # Volume deployment berbeda dari data lokal untuk menghindari pemakaian silang profile.
       - pgdata-deploy:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
@@ -85,6 +88,7 @@ services:
       - backend
     profiles: ["local"]
 
+  # Layanan satu kali; kegagalan migration menahan startup API/worker deployment.
   migrate:
     build: ./backend
     command: ["alembic", "upgrade", "head"]

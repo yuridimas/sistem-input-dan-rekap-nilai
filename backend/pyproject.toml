@@ -1,3 +1,5 @@
+# Manifest package backend dan konfigurasi pytest untuk API/worker.
+# Extra dev memuat alat test; template HTML disertakan agar renderer bekerja dari package.
 [project]
 name = "sistem-input-rekap-nilai-backend"
 version = "0.1.0"

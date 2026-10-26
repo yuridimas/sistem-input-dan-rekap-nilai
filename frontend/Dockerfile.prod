@@ -1,3 +1,5 @@
+# Build frontend di Node lalu salin hanya aset hasil build ke image Nginx.
+# VITE_API_URL dimasukkan saat build, bukan dibaca ulang oleh browser dari environment container.
 FROM node:24-alpine3.24 AS build
 
 WORKDIR /app
@@ -6,6 +8,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+# Path relatif /api membuat browser memakai origin proxy yang sama dengan frontend.
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build

@@ -1,3 +1,7 @@
+/*
+ * Pemeriksaan TypeScript sumber React untuk build frontend tanpa emit JavaScript.
+ * Alias @ menyamai Vite; file ini memakai JSONC sehingga komentar didukung compiler.
+ */
 {
   "compilerOptions": {
     "baseUrl": ".",

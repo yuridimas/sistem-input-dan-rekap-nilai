@@ -1,3 +1,5 @@
+# Image runtime API dan worker; Compose memilih command sesuai peran layanan.
+# Library font/Pango menyediakan runtime native untuk rendering PDF WeasyPrint.
 FROM python:3.11-slim
 
 WORKDIR /app

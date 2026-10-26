@@ -1,3 +1,5 @@
+# Image development Vite pada profile local Compose dengan sumber yang dapat di-mount.
+# Build produksi memakai Dockerfile.prod agar aset statis dilayani oleh Nginx.
 FROM node:24
 
 WORKDIR /app

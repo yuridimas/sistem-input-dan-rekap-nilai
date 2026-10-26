@@ -1,3 +1,8 @@
+"""Hubungkan CLI Alembic dengan konfigurasi dan metadata model.
+
+Mode offline menghasilkan SQL; mode online menerapkan revisi melalui
+koneksi async.
+"""
 import asyncio
 from logging.config import fileConfig
 
@@ -26,6 +31,12 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    """Susun SQL migration tanpa koneksi database.
+
+    Error revisi diteruskan ke CLI.
+
+    Menjalankan context offline.
+    """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -38,12 +49,25 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
+    """Terapkan revisi pada koneksi sinkron Alembic.
+
+    Perubahan schema sesuai revisi dalam transaksi; exception
+    diteruskan.
+
+    Args:
+        connection: Koneksi sinkron yang dipinjam dari engine async
+            Alembic.
+    """
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
         context.run_migrations()
 
 
 async def run_async_migrations() -> None:
+    """Buka koneksi tanpa pool lalu jembatani operasi Alembic sinkron.
+
+    Menerapkan schema; engine di-dispose setelah jalur sukses.
+    """
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -55,6 +79,10 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
+    """Sediakan event loop untuk entrypoint migration CLI sinkron.
+
+    Menjalankan migration DB; error koneksi/revisi diteruskan.
+    """
     asyncio.run(run_async_migrations())
 
 

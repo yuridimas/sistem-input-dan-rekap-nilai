@@ -1,3 +1,5 @@
+# Batas build context backend agar virtualenv/cache dan credential lokal tidak masuk image.
+# Dipakai Dockerfile backend sebelum COPY sumber aplikasi.
 .venv
 __pycache__
 .pytest_cache

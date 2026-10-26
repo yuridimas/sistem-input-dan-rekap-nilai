@@ -1,3 +1,5 @@
+# Batas build context frontend agar dependency/build lokal tidak menimpa hasil dalam container.
+# File environment lokal dikecualikan; URL publik build dipasok melalui build arg prod.
 node_modules
 dist
 .git

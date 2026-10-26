@@ -1,3 +1,5 @@
+# Pengecualian repository untuk cache/dependency dan environment berisi credential.
+# Contoh environment tetap terlacak agar setup dapat direproduksi tanpa membagikan rahasia.
 __pycache__/
 *.pyc
 *.egg-info/

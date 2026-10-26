@@ -1,3 +1,7 @@
+/*
+ * Daftar project reference untuk tsc -b pada script build frontend.
+ * Konfigurasi sumber browser dan tooling Node diperiksa melalui project terpisah.
+ */
 {
   "files": [],
   "references": [
