@@ -1,4 +1,10 @@
-"""Class, enrollment, and roster router."""
+"""Class, enrollment, and roster router.
+
+Adapter HTTP kelas dan roster yang didaftarkan app.main.
+
+Dependency menetapkan identitas/role; aturan bisnis dan persistence
+didelegasikan ke service.
+"""
 
 import uuid
 
@@ -26,6 +32,14 @@ _roles = require_role("superadmin", "lecturer")
 
 
 def _roster_entry(enrollment: Enrollment, student: Student) -> RosterEntryRead:
+    """Susun respons roster dari pasangan objek ORM.
+
+    Serialisasi tidak memicu lazy-load relasi ORM.
+
+    Args:
+        enrollment: Objek keikutsertaan mahasiswa yang dilacak session.
+        student: Objek profil mahasiswa yang dilacak session.
+    """
     return RosterEntryRead(
         id=enrollment.id,
         enrolled_at=enrollment.enrolled_at,
@@ -39,6 +53,22 @@ async def create_class(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(_roles),
 ) -> ClassRead:
+    """Buat kelas dengan penugasan dosen sesuai hak pengguna.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        payload: Kontrak kelas; penugasan lecturer_id ditafsirkan sesuai
+            role.
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Metadata kelas baru beserta status penguncian.
+    """
     class_ = await class_service.create_class(db, payload, current_user)
     return (await class_service.serialize_classes(db, [class_]))[0]
 
@@ -48,6 +78,20 @@ async def list_classes(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(_roles),
 ) -> list[ClassRead]:
+    """Sajikan kelas dan status finalisasi sesuai cakupan pengguna.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Daftar kelas yang terlihat oleh pengguna; bisa kosong.
+    """
     classes = await class_service.list_classes(db, current_user)
     return await class_service.serialize_classes(db, classes)
 
@@ -58,6 +102,21 @@ async def get_class(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(_roles),
 ) -> ClassRead:
+    """Sajikan metadata/status kelas setelah service memeriksa pemilik.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        class_id: UUID kelas yang menjadi cakupan operasi.
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Metadata kelas beserta status penguncian.
+    """
     class_ = await class_service.get_class(db, class_id, current_user)
     return (await class_service.serialize_classes(db, [class_]))[0]
 
@@ -69,6 +128,23 @@ async def update_class(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(_roles),
 ) -> ClassRead:
+    """Ubah metadata kelas setelah validasi penugasan dan keunikan.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        class_id: UUID kelas yang menjadi cakupan operasi.
+        payload: Data masukan yang sudah melewati validasi schema
+            endpoint.
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Metadata kelas terbaru beserta status penguncian.
+    """
     class_ = await class_service.update_class(db, class_id, payload, current_user)
     return (await class_service.serialize_classes(db, [class_]))[0]
 
@@ -79,6 +155,21 @@ async def delete_class(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(_roles),
 ) -> Response:
+    """Hapus kelas yang diizinkan dan tidak terhalang relasi.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        class_id: UUID kelas yang menjadi cakupan operasi.
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Respons HTTP 204 tanpa body.
+    """
     await class_service.delete_class(db, class_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -94,6 +185,23 @@ async def enroll_student(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(_roles),
 ) -> RosterEntryRead:
+    """Daftarkan mahasiswa pada kelas yang belum terkunci.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        class_id: UUID kelas yang menjadi cakupan operasi.
+        payload: Data masukan yang sudah melewati validasi schema
+            endpoint.
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Keikutsertaan baru beserta profil mahasiswa.
+    """
     enrollment, student = await class_service.enroll_student(
         db, class_id, payload, current_user
     )
@@ -106,6 +214,21 @@ async def get_roster(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(_roles),
 ) -> list[RosterEntryRead]:
+    """Sajikan roster kelas yang boleh diakses pengguna.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        class_id: UUID kelas yang menjadi cakupan operasi.
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Daftar keikutsertaan dan profil mahasiswa; bisa kosong.
+    """
     rows = await class_service.get_roster(db, class_id, current_user)
     return [_roster_entry(enrollment, student) for enrollment, student in rows]
 
@@ -120,5 +243,21 @@ async def delete_enrollment(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(_roles),
 ) -> Response:
+    """Hapus keikutsertaan dari roster kelas yang belum terkunci.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        class_id: UUID kelas yang menjadi cakupan operasi.
+        enrollment_id: UUID keikutsertaan mahasiswa pada satu kelas.
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Respons HTTP 204 tanpa body.
+    """
     await class_service.delete_enrollment(db, class_id, enrollment_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

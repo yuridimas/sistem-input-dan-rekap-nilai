@@ -1,4 +1,10 @@
-"""Course management router."""
+"""Course management router.
+
+Adapter HTTP mata kuliah yang didaftarkan app.main.
+
+Dependency menetapkan identitas/role; aturan bisnis dan persistence
+didelegasikan ke service.
+"""
 
 import uuid
 
@@ -20,6 +26,22 @@ async def create_course(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("superadmin", "lecturer")),
 ) -> CourseRead:
+    """Buat mata kuliah dengan identitas pencipta dari sesi.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        payload: Data masukan yang sudah melewati validasi schema
+            endpoint.
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Metadata mata kuliah baru.
+    """
     course = await course_service.create_course(db, payload, current_user)
     return CourseRead.model_validate(course)
 
@@ -29,6 +51,20 @@ async def list_courses(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[CourseRead]:
+    """Sajikan mata kuliah milik pengguna atau penugasannya.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Daftar mata kuliah sesuai cakupan pengguna; bisa kosong.
+    """
     courses = await course_service.list_courses(db, current_user)
     return [CourseRead.model_validate(course) for course in courses]
 
@@ -39,6 +75,21 @@ async def get_course(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> CourseRead:
+    """Periksa hak baca sebelum serialisasi metadata mata kuliah.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        course_id: UUID mata kuliah yang menjadi sasaran operasi.
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Metadata mata kuliah yang diizinkan.
+    """
     course = await course_service.get_course(db, course_id, current_user)
     return CourseRead.model_validate(course)
 
@@ -50,6 +101,23 @@ async def update_course(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> CourseRead:
+    """Ubah mata kuliah hanya dengan hak pencipta atau admin.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        course_id: UUID mata kuliah yang menjadi sasaran operasi.
+        payload: Data masukan yang sudah melewati validasi schema
+            endpoint.
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Metadata mata kuliah setelah perubahan.
+    """
     course = await course_service.update_course(db, course_id, payload, current_user)
     return CourseRead.model_validate(course)
 
@@ -60,5 +128,20 @@ async def delete_course(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
+    """Hapus mata kuliah setelah pemeriksaan hak dan relasi.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        course_id: UUID mata kuliah yang menjadi sasaran operasi.
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Respons HTTP 204 tanpa body.
+    """
     await course_service.delete_course(db, course_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

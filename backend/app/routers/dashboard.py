@@ -1,4 +1,10 @@
-"""Academic dashboard endpoint."""
+"""Academic dashboard endpoint.
+
+Adapter HTTP ringkasan akademik yang didaftarkan app.main.
+
+Dependency menetapkan identitas/role; aturan bisnis dan persistence
+didelegasikan ke service.
+"""
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,4 +23,19 @@ async def get_summary(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("superadmin", "lecturer")),
 ) -> DashboardSummaryRead:
+    """Sajikan ringkasan akademik sesuai role pengguna.
+
+    \f
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        current_user: Akun aktif; superadmin melihat cakupan lintas
+            dosen.
+
+    Returns:
+        Hitungan, kelompok kelas, dan rilis terbaru sesuai cakupan
+        pengguna.
+    """
     return await dashboard_service.get_summary(db, current_user)

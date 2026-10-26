@@ -1,4 +1,10 @@
-"""Score entry endpoints."""
+"""Score entry endpoints.
+
+Adapter HTTP penyimpanan skor yang didaftarkan app.main.
+
+Dependency menetapkan identitas/role; aturan bisnis dan persistence
+didelegasikan ke service.
+"""
 
 import uuid
 
@@ -20,5 +26,24 @@ async def put_scores(
     enrollment_id: uuid.UUID, payload: ScorePayload,
     db: AsyncSession = Depends(get_db), user: User = Depends(require_role("superadmin", "lecturer")),
 ) -> GradeRead:
-    """Upsert numeric scores, clear null scores; omitted component scores are retained."""
+    """Simpan patch skor tanpa mengubah komponen yang tidak dikirim.
+
+    \f
+
+    Upsert numeric scores, clear null scores; omitted component scores
+    are retained.
+
+    Error akses/validasi/konflik diteruskan dari dependency/service.
+
+    Args:
+        enrollment_id: UUID keikutsertaan mahasiswa pada satu kelas.
+        payload: Data masukan yang sudah melewati validasi schema
+            endpoint.
+        db: Session database; batas commit mengikuti operasi terkait.
+        user: Objek akun untuk pemeriksaan akses atau persistence sesuai
+            operasi.
+
+    Returns:
+        Total draft beserta status dan metadata audit penilaian.
+    """
     return GradeRead.model_validate(await save_scores(db, enrollment_id, payload, user))

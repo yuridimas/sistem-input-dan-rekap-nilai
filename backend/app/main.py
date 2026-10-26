@@ -1,4 +1,10 @@
-"""FastAPI application entrypoint."""
+"""FastAPI application entrypoint.
+
+Entrypoint API yang merangkai router, CORS, limiter, dan bootstrap akun.
+
+Uvicorn/ASGI memuat app; service seed dijalankan ketika lifespan
+diaktifkan server.
+"""
 
 from contextlib import asynccontextmanager
 
@@ -30,9 +36,20 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Bootstrap akun superadmin sebelum API menerima request.
+
+    Seed dapat commit DB, kegagalan ditelan agar startup berlanjut.
+
+    Args:
+        app: Instance FastAPI yang mengelola lifecycle aplikasi.
+
+    Yields:
+        Kontrol ke server setelah percobaan bootstrap selesai.
+    """
     try:
         async with AsyncSessionLocal() as session:
             await seed_superadmin(session)
+    # TODO: Konfirmasi dengan tim apakah kegagalan seed boleh diam tanpa log/indikator startup.
     except Exception:
         pass
     yield

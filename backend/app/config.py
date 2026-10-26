@@ -1,3 +1,8 @@
+"""Konfigurasi bersama untuk API, worker, seed, dan transport email.
+
+Pydantic membaca environment serta .env relatif working directory;
+instance dicache per proses.
+"""
 from functools import lru_cache
 from typing import Literal
 
@@ -6,6 +11,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Konfigurasi runtime dari environment dan file .env."""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "Sistem Input & Rekap Nilai"
@@ -31,4 +38,10 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Cache satu snapshot konfigurasi per proses.
+
+    Validasi Pydantic dapat gagal.
+
+    Cache perlu dibersihkan bila test mengganti environment.
+    """
     return Settings()

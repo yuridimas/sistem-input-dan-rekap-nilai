@@ -1,3 +1,8 @@
+"""Engine dan factory session async untuk API serta startup.
+
+Session request dibagikan melalui get_db; service/repository menentukan
+batas commit.
+"""
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import get_settings
@@ -9,5 +14,12 @@ AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_co
 
 
 async def get_db() -> AsyncSession:
+    """Pinjamkan session database selama satu request.
+
+    Tidak commit otomatis, exception diteruskan.
+
+    Yields:
+        AsyncSession yang ditutup setelah request selesai.
+    """
     async with AsyncSessionLocal() as session:
         yield session

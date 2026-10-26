@@ -1,4 +1,10 @@
-"""Auth router: login, refresh, me."""
+"""Auth router: login, refresh, me.
+
+Adapter HTTP login dan rotasi sesi yang didaftarkan app.main.
+
+Dependency menetapkan identitas/role; aturan bisnis dan persistence
+didelegasikan ke service.
+"""
 
 import uuid
 from typing import Any
@@ -25,12 +31,34 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def _norm_role(role: Any) -> str:
+    """Samakan nilai enum/string untuk role dalam JWT.
+
+    Args:
+        role: Role akun atau filter role yang dipakai operasi.
+    """
     return str(role.value) if hasattr(role, "value") else str(role)
 
 
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("30/minute")
 async def login(request: Request, db: AsyncSession = Depends(get_db)):
+    """Terbitkan pasangan token setelah login JSON atau form.
+
+    \f
+
+    Args:
+        request: Request HTTP untuk membaca input, header, atau konteks
+            limiter.
+        db: Session database; batas commit mengikuti operasi terkait.
+
+    Returns:
+        Pasangan token akses dan refresh yang baru.
+
+    Raises:
+        HTTPException: 422 jika kredensial absen, 401 jika login
+            ditolak.
+        RateLimitExceeded: Percobaan melebihi batas limiter.
+    """
     # Support JSON and form-encoded bodies.
     email: str | None = None
     password: str | None = None
@@ -63,6 +91,23 @@ async def login(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh(request: Request, db: AsyncSession = Depends(get_db)):
+    """Rotasi token refresh yang masih valid untuk akun aktif.
+
+    \f
+
+    Mutasi daftar revoked proses.
+
+    Args:
+        request: Request HTTP untuk membaca input, header, atau konteks
+            limiter.
+        db: Session database; batas commit mengikuti operasi terkait.
+
+    Returns:
+        Pasangan token akses dan refresh pengganti.
+
+    Raises:
+        HTTPException: 422 token absen, 401 invalid.
+    """
     token: str | None = None
     # query param
     token = request.query_params.get("refresh_token") or request.query_params.get("token")
@@ -79,6 +124,7 @@ async def refresh(request: Request, db: AsyncSession = Depends(get_db)):
         except Exception:
             pass
     # body as raw string
+    # Urutan kompatibilitas: query, JSON/form, lalu raw body; sumber awal yang ada menang.
     if not token:
         try:
             raw = (await request.body()).decode("utf-8").strip()
@@ -118,4 +164,15 @@ async def refresh(request: Request, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)):
+    """Sajikan identitas sesi aktif tanpa hash password.
+
+    \f
+
+    Args:
+        current_user: Akun aktif pemanggil sebagai dasar pemeriksaan
+            akses.
+
+    Returns:
+        Identitas akun aktif, diserialisasi tanpa hash password.
+    """
     return current_user

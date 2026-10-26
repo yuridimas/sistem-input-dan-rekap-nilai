@@ -1,4 +1,10 @@
-"""FastAPI dependencies shared across routers."""
+"""FastAPI dependencies shared across routers.
+
+Dependency identitas dan role yang dipakai router FastAPI.
+
+Validitas token saja tidak cukup: akun aktif dan role terkini dibaca
+dari database.
+"""
 
 from typing import Any
 
@@ -20,6 +26,17 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
     token: str | None = Depends(oauth2_scheme),
 ) -> User:
+    """Validasi token dan muat akun aktif untuk otorisasi.
+
+    Hanya membaca DB.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        token: JWT yang diverifikasi sebelum identitasnya dipercaya.
+
+    Raises:
+        HTTPException: 401 untuk token/akun invalid.
+    """
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -35,6 +52,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     token_type = payload.get("type")
+    # Token lama tanpa type masih diterima; refresh token eksplisit tidak boleh untuk akses API.
     if token_type not in (None, "access"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -52,12 +70,27 @@ async def get_current_user(
 
 
 def _normalize_role(value: Any) -> str:
+    """Samakan bentuk enum/string pada daftar role yang diizinkan.
+
+    Args:
+        value: Nilai field yang dinormalisasi atau divalidasi.
+    """
     if hasattr(value, "value"):
         return str(value.value)
     return str(value)
 
 
 def require_role(*roles: Any):
+    """Bangun dependency pembatas role endpoint.
+
+    Args:
+        *roles: Nama/enum role atau koleksinya yang diizinkan pada
+            endpoint.
+
+    Returns:
+        Fungsi dependency async. Pemeriksaan baru berjalan saat request
+        memanggilnya.
+    """
     normalized: list[str] = []
     for role in roles:
         if isinstance(role, (list, tuple, set)):
@@ -67,6 +100,18 @@ def require_role(*roles: Any):
             normalized.append(_normalize_role(role))
 
     async def _dependency(user: User = Depends(get_current_user)) -> User:
+        """Pastikan role akun aktif diizinkan endpoint.
+
+        Args:
+            user: Objek akun untuk pemeriksaan akses atau persistence
+                sesuai operasi.
+
+        Returns:
+            User diteruskan.
+
+        Raises:
+            HTTPException: 403 bila role tidak sesuai.
+        """
         if str(getattr(user, "role", "")) not in normalized:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
         return user
