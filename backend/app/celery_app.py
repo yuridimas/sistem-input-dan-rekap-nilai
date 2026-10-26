@@ -1,4 +1,10 @@
-"""Grade-release publisher and email worker configuration."""
+"""Grade-release publisher and email worker configuration.
+
+Konfigurasi broker Redis bagi publisher rilis dan worker notifikasi.
+
+Service mencatat kegagalan enqueue sendiri sehingga retry koneksi
+otomatis dinonaktifkan.
+"""
 
 from celery import Celery
 
@@ -14,6 +20,7 @@ celery_app.conf.update(
     broker_connection_max_retries=0,
     broker_connection_timeout=1,
     broker_pool_limit=0,
+    # Prefetch satu membatasi task yang dipesan worker saat pengiriman SMTP lambat.
     worker_prefetch_multiplier=1,
     broker_transport_options={"socket_connect_timeout": 1, "socket_timeout": 1, "retry_on_timeout": False},
 )

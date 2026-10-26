@@ -1,4 +1,11 @@
-"""Mock logger or SMTP delivery of plain-text Indonesian grade emails."""
+"""Mock logger or SMTP delivery of plain-text Indonesian grade emails.
+
+Transport email nilai untuk service notifications, dengan mode mock
+tanpa SMTP host.
+
+Validasi alamat tetap berlaku pada kedua mode agar status pengiriman
+tidak menutupi input rusak.
+"""
 
 import logging
 import smtplib
@@ -16,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class GradeEmail:
+    """Payload immutable nilai final untuk transport email."""
+
     grade_id: uuid.UUID
     recipient: str | None
     full_name: str
@@ -26,6 +35,21 @@ class GradeEmail:
 
 
 def validate_address(value: str | None) -> str:
+    """Tolak alamat kosong, display name, newline, atau invalid.
+
+    Validasi format ini tidak memverifikasi keberadaan mailbox.
+
+    Args:
+        value: Alamat penerima/pengirim; None, newline, dan format
+            invalid ditolak.
+
+    Returns:
+        Alamat yang telah dipangkas spasi luarnya dan lolos pemeriksaan
+        format dasar.
+
+    Raises:
+        ValueError: jika invalid.
+    """
     if not value or "\r" in value or "\n" in value:
         raise ValueError("Alamat email belum diisi atau tidak valid")
     value = value.strip()
@@ -36,6 +60,14 @@ def validate_address(value: str | None) -> str:
 
 
 def send_grade_email(data: GradeEmail) -> None:
+    """Kirim email melalui SMTP atau catat pengiriman mode mock.
+
+    Jaringan SMTP/log; ValueError alamat invalid, error SMTP/koneksi
+    diteruskan.
+
+    Args:
+        data: Payload email yang dibentuk dari hasil nilai final.
+    """
     recipient = validate_address(data.recipient)
     settings = get_settings()
     if not settings.smtp_host:
@@ -45,6 +77,7 @@ def send_grade_email(data: GradeEmail) -> None:
     message["From"] = validate_address(settings.smtp_from or settings.smtp_user)
     message["To"] = recipient
     message["Subject"] = "Nilai " + " ".join(data.course_name.splitlines()) + " telah dirilis"
+    # Batas 45 juga digunakan laporan dan analytics untuk status kelulusan.
     message.set_content(
         f"Halo {data.full_name},\n\n"
         f"Nilai mata kuliah {data.course_name}, kelas {data.section}, telah dirilis.\n"

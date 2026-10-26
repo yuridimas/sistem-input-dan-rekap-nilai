@@ -1,4 +1,10 @@
-"""Final-only report loading and offloaded PDF/XLSX rendering."""
+"""Final-only report loading and offloaded PDF/XLSX rendering.
+
+Pemuatan data final dan rendering laporan untuk router reports.
+
+Objek ReportData dipisahkan dari ORM agar renderer PDF/XLSX dapat
+bekerja di thread.
+"""
 
 import asyncio
 import io
@@ -28,6 +34,15 @@ logger = logging.getLogger(__name__)
 
 
 def _report_row(row: tuple[Enrollment, Student, Grade | None, int | None]) -> ReportRow:
+    """Tolak data draft sebelum dibentuk sebagai baris laporan resmi.
+
+    Args:
+        row: Hasil query enrollment, mahasiswa, nilai opsional, dan
+            ranking.
+
+    Raises:
+        HTTPException: 409 jika Grade kosong atau belum finalized.
+    """
     enrollment, student, grade, rank = row
     if grade is None or grade.status != GradeStatus.FINALIZED:
         raise HTTPException(409, "PDF hanya tersedia untuk nilai yang sudah difinalisasi")
@@ -36,6 +51,18 @@ def _report_row(row: tuple[Enrollment, Student, Grade | None, int | None]) -> Re
 
 
 async def _report_context(db: AsyncSession, class_: Class, rows: list[ReportRow]) -> ReportData:
+    """Lengkapi metadata mata kuliah/kelas untuk kedua jenis laporan.
+
+    Hanya membaca DB.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        class_: Objek kelas yang sudah dimuat oleh pemanggil.
+        rows: Data sumber yang sudah dimuat untuk perakitan atau audit.
+
+    Raises:
+        HTTPException: 404 jika mata kuliah absen.
+    """
     course = await course_repo.get_by_id(db, class_.course_id)
     if course is None:
         raise HTTPException(404, "Mata kuliah tidak ditemukan")
@@ -45,6 +72,19 @@ async def _report_context(db: AsyncSession, class_: Class, rows: list[ReportRow]
 
 
 async def load_student_report(db: AsyncSession, enrollment_id: uuid.UUID, user: User) -> ReportData:
+    """Muat nilai final satu enrollment setelah pemeriksaan akses kelas.
+
+    Hanya membaca DB.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        enrollment_id: UUID keikutsertaan mahasiswa pada satu kelas.
+        user: Objek akun untuk pemeriksaan akses atau persistence sesuai
+            operasi.
+
+    Raises:
+        HTTPException: 403/404 akses atau 409 belum final.
+    """
     row = await repo.get_student(db, enrollment_id)
     if row is None:
         raise HTTPException(404, "Pendaftaran mahasiswa tidak ditemukan")
@@ -59,6 +99,19 @@ async def load_student_report(db: AsyncSession, enrollment_id: uuid.UUID, user: 
 
 
 async def load_class_report(db: AsyncSession, class_id: uuid.UUID, user: User) -> ReportData:
+    """Muat roster final beserta peta skor untuk laporan seluruh kelas.
+
+    Hanya membaca DB.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        class_id: UUID kelas yang menjadi cakupan operasi.
+        user: Objek akun untuk pemeriksaan akses atau persistence sesuai
+            operasi.
+
+    Raises:
+        HTTPException: 403/404 akses atau 409 kosong/belum final.
+    """
     class_ = await get_class(db, class_id, user)
     rows = await repo.list_class(db, class_id)
     if not rows:
@@ -77,19 +130,65 @@ async def load_class_report(db: AsyncSession, class_id: uuid.UUID, user: User) -
 
 
 def reject_resource(url: str, *args: Any, **kwargs: Any) -> NoReturn:
+    """Tolak seluruh akses resource eksternal renderer PDF.
+
+    Args:
+        url: Resource yang diminta renderer; seluruh akses ditolak.
+        *args: Argumen tambahan sesuai kontrak callback pemanggil.
+        **kwargs: Keyword tambahan sesuai kontrak callback pemanggil.
+
+    Raises:
+        ValueError: Setiap permintaan resource ditolak.
+    """
     raise ValueError("Resource eksternal tidak diizinkan dalam laporan PDF")
 
 
 def _load_weasyprint() -> Any:
+    """Tunda import renderer agar route lain tetap tersedia.
+
+    ImportError/OSError diterjemahkan pemanggil menjadi HTTPException
+    503.
+
+    Returns:
+        Class HTML dari WeasyPrint untuk membuat dokumen PDF.
+    """
     from weasyprint import HTML
     return HTML
 
 
 def _decimal(value: Decimal | None) -> str:
+    """Format dua desimal berkoma atau penanda kosong untuk None.
+
+    Tanpa mutasi atau akses eksternal.
+
+    Args:
+        value: Decimal opsional; None memakai penanda kosong.
+
+    Returns:
+        Teks dua desimal berkoma, atau penanda kosong jika value None.
+    """
     return "—" if value is None else format(value, ".2f").replace(".", ",")
 
 
 def _render_pdf(template_name: str, report: ReportData, institution_name: str) -> bytes:
+    """Render PDF dalam memori tanpa resource eksternal.
+
+    Error template/render lain diteruskan.
+
+    Args:
+        template_name: Nama template lokal yang dipilih service, bukan
+            path bebas.
+        report: Konteks laporan yang sudah lolos validasi akses dan
+            status final.
+        institution_name: Nama institusi dari konfigurasi untuk header
+            laporan.
+
+    Raises:
+        HTTPException: 503 jika runtime absen.
+
+    Returns:
+        Bytes dokumen PDF yang sudah dirender.
+    """
     try:
         from jinja2 import Environment, FileSystemLoader, select_autoescape
         html_class = _load_weasyprint()
@@ -105,11 +204,38 @@ def _render_pdf(template_name: str, report: ReportData, institution_name: str) -
 
 
 async def render_pdf(report: ReportData, *, student: bool) -> bytes:
+    """Offload renderer PDF sinkron ke thread.
+
+    Exception renderer diteruskan.
+
+    Args:
+        report: Konteks laporan yang sudah lolos validasi akses dan
+            status final.
+        student: True memilih laporan individu; False memilih rekap
+            kelas.
+
+    Returns:
+        Bytes dokumen PDF dari template individu atau kelas.
+    """
     return await asyncio.to_thread(_render_pdf, "student_report.html" if student else "class_report.html",
                                    report, get_settings().institution_name)
 
 
 def _render_xlsx(report: ReportData) -> bytes:
+    """Bangun workbook dalam memori tanpa file sementara.
+
+    Exception workbook diteruskan.
+
+    Args:
+        report: Konteks laporan yang sudah lolos validasi akses dan
+            status final.
+
+    Raises:
+        HTTPException: 503 jika openpyxl absen.
+
+    Returns:
+        Bytes workbook XLSX yang dibangun dalam memori.
+    """
     try:
         from openpyxl import Workbook
         from openpyxl.styles import Alignment, Font, PatternFill
@@ -121,6 +247,7 @@ def _render_xlsx(report: ReportData) -> bytes:
     sheet.title = "Rekap Kelas"
 
     def text_cell(cell: Any, value: str) -> None:
+        """Paksa teks agar NIM utuh dan formula tidak dieksekusi."""
         cell.value = value
         cell.data_type = "s"
 
@@ -149,6 +276,7 @@ def _render_xlsx(report: ReportData) -> bytes:
         text_cell(sheet.cell(row=row_index, column=final_column + 2),
                   "Tidak lulus" if report_row.final_score < 45 else "Lulus")
 
+    # Header tetap terlihat; lebar 12..55 membatasi kolom agar label panjang tidak mendominasi.
     sheet.freeze_panes = "A2"
     sheet.auto_filter.ref = sheet.dimensions
     sheet.row_dimensions[1].height = 32
@@ -163,4 +291,15 @@ def _render_xlsx(report: ReportData) -> bytes:
 
 
 async def render_xlsx(report: ReportData) -> bytes:
+    """Offload pembuatan workbook sinkron ke thread.
+
+    Exception renderer diteruskan.
+
+    Args:
+        report: Konteks laporan yang sudah lolos validasi akses dan
+            status final.
+
+    Returns:
+        Bytes workbook XLSX yang siap dikirim sebagai unduhan.
+    """
     return await asyncio.to_thread(_render_xlsx, report)

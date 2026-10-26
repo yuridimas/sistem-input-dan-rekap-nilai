@@ -1,4 +1,10 @@
-"""Grade-release email task with three exponential-backoff retries."""
+"""Grade-release email task with three exponential-backoff retries.
+
+Jembatan task Celery sinkron ke service pengiriman async.
+
+Setiap invocation memiliki engine sendiri agar koneksi tidak berpindah
+antar-event-loop.
+"""
 
 import asyncio
 import uuid
@@ -17,6 +23,20 @@ async def _run(
     grade_id: uuid.UUID, final_attempt: bool, *, publish_failed: bool = False,
     dispatch_token: uuid.UUID | None = None,
 ) -> dict[str, str]:
+    """Buka session untuk pengiriman atau pencatatan gagal publish.
+
+    DB/SMTP sesuai service; engine selalu di-dispose, error di luar
+    service diteruskan.
+
+    Args:
+        grade_id: UUID nilai akhir yang menjadi sumber notifikasi.
+        final_attempt: True jika kegagalan berikutnya tidak boleh
+            di-retry otomatis.
+        publish_failed: True untuk mencatat kegagalan enqueue percobaan
+            ulang.
+        dispatch_token: Token generasi dispatch; None mendukung task
+            lama tanpa token.
+    """
     # Each sync Celery invocation has its own event loop; never reuse pooled asyncpg connections.
     engine = create_async_engine(get_settings().database_url, poolclass=NullPool)
     try:
@@ -32,6 +52,15 @@ async def _run(
 
 @celery_app.task(bind=True, name="app.tasks.notifications.send_grade_release_email", max_retries=3)
 def send_grade_release_email(self: Task, grade_id: str, dispatch_token: str | None = None) -> dict[str, str]:
+    """Retry task dengan backoff satu, dua, lalu empat detik.
+
+    DB/SMTP/broker; Retry diteruskan, UUID invalid memicu ValueError.
+
+    Args:
+        grade_id: UUID nilai akhir yang menjadi sumber notifikasi.
+        dispatch_token: Token generasi dispatch; None mendukung task
+            lama tanpa token.
+    """
     grade_uuid = uuid.UUID(grade_id)
     token = uuid.UUID(dispatch_token) if dispatch_token else None
     outcome = asyncio.run(_run(grade_uuid, self.request.retries >= self.max_retries, dispatch_token=token))

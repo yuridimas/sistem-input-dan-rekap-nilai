@@ -1,4 +1,12 @@
-"""Delivery state transitions, durable enqueue failures, and manual retry."""
+"""Transisi status pengiriman, gagal enqueue, dan retry admin.
+
+Delivery state transitions, durable enqueue failures, and manual retry.
+
+Transisi status pengiriman untuk router notifications dan worker Celery.
+
+Catatan database membedakan enqueue, pengiriman sukses, retry, dan
+kegagalan permanen.
+"""
 
 import asyncio
 import logging
@@ -19,12 +27,37 @@ logger = logging.getLogger(__name__)
 
 
 async def list_notifications(db: AsyncSession, status: NotificationStatus | None) -> list[Notification]:
+    """Baca antrean pengiriman dengan filter status opsional.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        status: Filter status pengiriman; None menyertakan seluruh
+            status.
+
+    Returns:
+        Daftar notifikasi sesuai filter; bisa kosong.
+    """
     return await repo.list_notifications(db, status)
 
 
 async def record_enqueue_result(
     db: AsyncSession, grade_ids: list[uuid.UUID], accepted: int, dispatch_tokens: dict[uuid.UUID, uuid.UUID],
 ) -> None:
+    """Catat kegagalan sisa enqueue tanpa membatalkan rilis nilai.
+
+    Commit DB.
+
+    SQLAlchemyError di-rollback dan dicatat, tidak diteruskan.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        grade_ids: UUID nilai dalam urutan publish; boleh kosong.
+        accepted: Jumlah task pada prefix grade_ids yang diterima
+            broker.
+        dispatch_tokens: Peta UUID nilai ke token dispatch yang masih
+            diharapkan.
+    """
+    # Publisher berhenti di kegagalan pertama sehingga accepted adalah panjang prefix sukses.
     if accepted >= len(grade_ids):
         return
     try:
@@ -36,6 +69,18 @@ async def record_enqueue_result(
 
 
 async def retry_notification(db: AsyncSession, notification_id: uuid.UUID) -> Notification:
+    """Siapkan ulang notifikasi gagal memakai email mahasiswa terbaru.
+
+    Lock/commit lalu publish.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        notification_id: UUID catatan pengiriman yang dibaca atau
+            dipulihkan.
+
+    Raises:
+        HTTPException: 404 absen, 409 sudah terkirim/belum final.
+    """
     notification = await repo.get_by_id(db, notification_id, lock=True)
     if notification is None:
         raise HTTPException(404, "Notifikasi tidak ditemukan")
@@ -59,6 +104,25 @@ async def retry_notification(db: AsyncSession, notification_id: uuid.UUID) -> No
 async def deliver_grade(
     db: AsyncSession, grade_id: uuid.UUID, *, final_attempt: bool, dispatch_token: uuid.UUID | None = None,
 ) -> dict[str, str]:
+    """Kirim rilis berdasarkan status final dan token dispatch.
+
+    Status dan token dispatch mencegah pemrosesan ulang task yang sudah
+    selesai atau diganti.
+
+    Lock/commit DB dan SMTP via thread.
+
+    Args:
+        db: Session database; batas commit mengikuti operasi terkait.
+        grade_id: UUID nilai akhir yang menjadi sumber notifikasi.
+        final_attempt: True jika kegagalan berikutnya tidak boleh
+            di-retry otomatis.
+        dispatch_token: Token generasi dispatch; None mendukung task
+            lama tanpa token.
+
+    Returns:
+        Dict status ignored, already_sent, sent, retry, atau failed;
+        error dan dispatch_token disertakan sesuai hasil.
+    """
     # A grade lock also serializes duplicate legacy messages without a notification row.
     details = await repo.delivery_details(db, grade_id, lock=True)
     if details is None or details[0].status != GradeStatus.FINALIZED:
@@ -73,6 +137,7 @@ async def deliver_grade(
         notification = Notification(grade_id=grade_id, student_email=student.email)
         db.add(notification)
         await db.flush()
+    # Retry dari generasi lama tidak boleh mengambil alih dispatch yang sudah diganti admin.
     if dispatch_token is not None and notification.dispatch_token != dispatch_token:
         await db.commit()
         return {"status": "ignored"}
@@ -94,6 +159,7 @@ async def deliver_grade(
         mailer.validate_address(data.recipient)
         await asyncio.to_thread(mailer.send_grade_email, data)
     except Exception as exc:
+        # Batasi pesan tersimpan; alamat invalid bersifat permanen dan tidak layak dicoba ulang.
         message = f"{type(exc).__name__}: {exc}"[:2000]
         retry = not final_attempt and not isinstance(exc, ValueError)
         notification.status = NotificationStatus.QUEUED if retry else NotificationStatus.FAILED
@@ -101,6 +167,7 @@ async def deliver_grade(
         await db.commit()
         return {"status": "retry" if retry else "failed", "error": message,
                 "dispatch_token": str(notification.dispatch_token)}
+    # WARNING: SMTP dan commit DB tidak atomik; crash di antaranya dapat menyebabkan kirim ulang.
     sent_at = datetime.now(timezone.utc)
     notification.status = NotificationStatus.SENT
     notification.error_message = None
