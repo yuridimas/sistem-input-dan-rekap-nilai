@@ -1,48 +1,73 @@
-# Repository Guidelines
+# Panduan Repository
 
-## Project Structure & Module Organization
+## Struktur project
 
-Grade management uses FastAPI and React/TypeScript.
+Backend memakai FastAPI dan frontend memakai React/TypeScript. Pertahankan pembagian lapisan berikut:
 
-- `backend/app/`: HTTP routers, Pydantic schemas, business services, database repositories, and SQLAlchemy models. Preserve these layers.
-- `backend/alembic/versions/`: database migrations; `backend/tests/`: API and model tests.
-- `frontend/src/`: components, shared API utilities, and Zustand stores. Reusable UI lives in `components/ui/`; assets live in `src/assets/` and `public/`.
-- `docs/superpowers/`: design specifications and implementation plans. Verify planned features against implementation.
-- `docker-compose.yml`: PostgreSQL, Redis, and application services.
+- `backend/app/`: HTTP routers, Pydantic schemas, business services, database repositories, dan SQLAlchemy models.
+- `backend/alembic/versions/`: database migrations; `backend/tests/`: tests API dan model.
+- `frontend/src/`: komponen, utilitas API bersama, dan Zustand stores. Primitive UI berada di `components/ui/`; aset berada di `src/assets/` dan `public/`.
+- `docs/superpowers/`: arsip spesifikasi dan rencana implementasi. Cocokkan fitur yang direncanakan dengan implementasi aktual.
+- `docker-compose.yml`: layanan PostgreSQL, Redis, API, worker, frontend, dan proxy.
 
-## Build, Test, and Development Commands
+Gunakan [README utama](README.md), [panduan backend](backend/README.md), [panduan frontend](frontend/README.md), dan [panduan deployment](docs/deployment.md) untuk langkah operasional.
 
-From the repository root:
+## Perintah development dan pemeriksaan
 
-- `docker compose up -d db redis`: start PostgreSQL and Redis.
-- `docker compose --profile local up --build`: build and run all local services. Configure `.env.local` first; container connections need service hosts `db` and `redis`.
+Dari **root repository**, siapkan `.env.local` dengan hostname `db` dan `redis` untuk koneksi antar-container. Profile `local` diperlukan untuk layanan development:
 
-From `backend/`, use Python 3.11+ and a virtual environment:
+Port host Docker lokal adalah frontend 15173, API 18000, PostgreSQL 15432, dan Redis 16379. Gunakan variabel `*_HOST_PORT` untuk override. Port internal container tetap digunakan pada URL antar-layanan; browser memakai port host. Staging/production memakai kelompok port 2xxxx/3xxxx sesuai template environment.
 
-- `python -m pip install -e ".[dev]"`: install backend and test dependencies.
-- `alembic upgrade head`: apply database migrations.
-- `uvicorn app.main:app --reload`: serve the API on port 8000.
-- `python -m pytest`: run backend tests.
+```sh
+docker compose --env-file .env.local --profile local up -d --wait db redis
+docker compose --env-file .env.local --profile local run --build --rm backend alembic upgrade head
+docker compose --env-file .env.local --profile local up -d --build --wait
+```
 
-From `frontend/`:
+Untuk backend di host, gunakan Python 3.11+ dan virtual environment. Jalankan dari **`backend/`** setelah memilih database yang sesuai:
 
-- `npm install`: install dependencies.
-- `npm run dev`: start Vite development server.
-- `npm run build`: check TypeScript and create production assets.
-- `npm run lint`: run Oxlint.
+```sh
+python -m pip install -e ".[dev]"
+alembic upgrade head
+uvicorn app.main:app --reload
+```
 
-## Coding Style & Naming Conventions
+Jalankan dari **`frontend/`**:
 
-Use four-space indentation, snake_case functions/modules, PascalCase classes, and type annotations in Python. Use two-space indentation, PascalCase React components, and camelCase functions in TypeScript. Follow nearby quotation and semicolon conventions; no formatter is configured. Prefer `@/` imports for frontend source modules. Add Alembic migrations for schema changes and preserve Indonesian database column comments.
+```sh
+npm ci
+npm run dev
+npm test
+npm run build
+npm run lint
+```
 
-## Testing Guidelines
+`npm run build` melakukan TypeScript check dan menghasilkan aset production; `npm run lint` menjalankan Oxlint.
 
-Backend tests use pytest, pytest-asyncio, and HTTPX. Name files `test_*.py` and functions `test_*`. Database tests require migrated PostgreSQL; several API tests expect `admin@example.com` with password `admin123`. Configure these only in a disposable test environment. Cover authorization, validation, conflicts, and successful operations. Frontend tests use Vitest and React Testing Library (`npm test`); also run `npm run build` and `npm run lint` for UI changes.
+## Konvensi kode dan dokumentasi
 
-## Commit & Pull Request Guidelines
+- Python: indentasi empat spasi, nama function/module `snake_case`, class `PascalCase`, dan type annotations.
+- TypeScript: indentasi dua spasi, komponen React `PascalCase`, dan function `camelCase`.
+- Ikuti konvensi quotation dan semicolon di sekitar kode yang diubah; belum ada formatter yang dikonfigurasi. Utamakan import `@/` untuk modul sumber frontend.
+- Tambahkan Alembic migration untuk perubahan schema dan pertahankan komentar tabel/kolom berbahasa Indonesia.
+- Gunakan docstring Google-style untuk dokumentasi Python dan JSDoc/TSDoc untuk kontrak TypeScript. Komentar internal menjelaskan alasan logic yang tidak langsung jelas.
 
-Follow existing Conventional Commits, such as `feat(backend): courses CRUD` or `fix(backend): handle conflicts`. Keep commits focused. PRs should explain behavior changes, link relevant issues, report validation, and include screenshots for UI changes. Describe migration and configuration requirements.
+## Testing
 
-## Configuration & Secrets
+Backend memakai pytest, pytest-asyncio, dan HTTPX. Gunakan nama file `test_*.py` dan function `test_*`. Jalankan `python -m pytest` dari **`backend/`** hanya pada PostgreSQL disposable yang sudah dimigrasi dan di-seed sesuai [panduan tests backend](backend/README.md#menjalankan-tests-pada-database-disposable).
 
-Start with `.env.example`. Compose reads `.env.local`; direct backend execution reads `.env` relative to its working directory or exported environment variables. Keep credentials out of commits and replace the default JWT secret.
+Beberapa tests memerlukan `admin@example.com` dengan password `admin123`; gunakan credential tersebut hanya pada lingkungan test disposable. Cakup otorisasi, validasi, konflik, dan operasi sukses.
+
+Frontend memakai Vitest dan React Testing Library (`npm test`). Untuk perubahan UI, jalankan juga `npm run build` dan `npm run lint`.
+
+## Commit dan pull request
+
+Ikuti Conventional Commits yang sudah digunakan, misalnya `feat(backend): courses CRUD` atau `fix(backend): handle conflicts`. Pisahkan commit berdasarkan concern.
+
+PR menjelaskan perubahan perilaku, menautkan issue terkait, melaporkan hasil verifikasi, dan menyertakan screenshot untuk perubahan UI. Jelaskan kebutuhan migration dan konfigurasi.
+
+## Konfigurasi dan secrets
+
+Mulai dari `.env.example`. Profile Compose lokal membaca `.env.local`; proses backend langsung membaca `.env` relatif working directory atau environment proses. Untuk frontend host, gunakan `frontend/.env.local`. Template staging/production memilih file layanan melalui `APP_ENV_FILE`.
+
+Jangan commit credential atau file environment aktual. Ganti default JWT secret dan gunakan konfigurasi terpisah untuk development, test, staging, dan production.
