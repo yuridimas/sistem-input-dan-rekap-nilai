@@ -30,6 +30,10 @@ dev = [
   "pytest-asyncio>=0.23",
   "pypdf==6.21.2",
 ]
+seed = [
+  "polyfactory==2.22.5",
+  "Faker==40.44.0",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

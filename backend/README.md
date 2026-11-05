@@ -19,7 +19,7 @@ Kemudian, dari **root repository menggunakan PowerShell**:
 ```powershell
 cd backend
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev,seed]"
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
@@ -76,6 +76,8 @@ Tinjau revision sebelum menjalankan `upgrade`. Pertahankan komentar tabel/kolom 
 
 ## Menjalankan tests pada database disposable
 
+Untuk alur seed data manual yang tetap tersimpan, lihat [docs/seeding.md](../docs/seeding.md). Seeder hanya menambahkan dataset baru dan mempertahankan perubahan human pada dataset yang sudah ada.
+
 Tests backend dapat melakukan commit dan menghapus data fixture. Gunakan container test tersendiri; jangan arahkan pytest ke database development, staging, atau production. Contoh berikut memakai credential khusus test yang diharapkan beberapa tests: `admin@example.com` / `admin123`.
 
 Dari **root repository menggunakan PowerShell**, siapkan network dan database/Redis tanpa mount data aplikasi:
@@ -94,6 +96,9 @@ Ulangi `pg_isready` sampai berhasil dan pastikan Redis membalas `PONG` sebelum m
 ```powershell
 docker run --rm -it --network nilai-test `
   -e DATABASE_URL=postgresql+asyncpg://postgres:test-only@nilai-test-db:5432/grades_test `
+  -e TEST_DATABASE_URL=postgresql+asyncpg://postgres:test-only@nilai-test-db:5432/grades_test `
+  -e TEST_REDIS_URL=redis://nilai-test-redis:6379/0 `
+  -e TEST_DATABASE_DISPOSABLE=1 `
   -e REDIS_URL=redis://nilai-test-redis:6379/0 `
   -e JWT_SECRET=local-test-only-secret-not-for-deployment `
   -e SMTP_HOST= `
@@ -105,12 +110,14 @@ docker run --rm -it --network nilai-test `
 Di dalam **shell container**, working directory adalah **`/app`**. Instal extra test, terapkan migration, dan seed akun secara eksplisit karena HTTPX ASGI tests tidak menjalankan startup aplikasi:
 
 ```sh
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev,seed]"
 alembic upgrade head
 python -c "import asyncio; from app.services.seed import seed_superadmin; asyncio.run(seed_superadmin())"
 python scripts/verify_comments.py
 python -m pytest
 ```
+
+Guard `tests/conftest.py` requires the three `TEST_*` variables above and redirects application connections to them before loading runtime modules. For local host runs, use the same variables with a disposable PostgreSQL database whose name ends in `_test`; never point them at the manual development database.
 
 Untuk membatasi skenario, jalankan `python -m pytest tests/test_scores.py -q` di shell container yang sama. Keluar dengan `exit`, lalu bersihkan resource test dari **root repository menggunakan PowerShell**:
 

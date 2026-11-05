@@ -1,8 +1,16 @@
-"""Kompatibilitas client ASGI untuk test backend dengan HTTPX.
+"""Target guard and HTTPX compatibility for backend tests.
 
 Shim dipasang saat pytest mengimpor conftest agar test lama tidak perlu
 diubah.
 """
+from tests.support.database_guard import configure_test_environment
+
+configure_test_environment(__import__("os").environ)
+
+from app.config import get_settings  # noqa: E402
+
+get_settings.cache_clear()
+
 import httpx
 from httpx import ASGITransport
 
@@ -22,3 +30,5 @@ class _CompatAsyncClient(_original_async_client):
 
 
 httpx.AsyncClient = _CompatAsyncClient
+
+pytest_plugins = ("tests.support.seed_data",)
