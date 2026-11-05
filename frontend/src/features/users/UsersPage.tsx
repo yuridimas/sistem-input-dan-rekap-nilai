@@ -2,19 +2,13 @@
 import { useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, DataTableToolbar } from "@/components/data-table";
 import { PageHeader, QueryState } from "@/features/academic/Management";
 import { useAuth } from "@/features/auth/useAuth";
 import api from "@/lib/api";
@@ -41,6 +35,20 @@ const roleLabels: Record<UserRole, string> = {
 function dateLabel(value: string) {
   return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(value));
 }
+
+const columns: ColumnDef<UserRecord>[] = [
+  { accessorKey: "full_name", header: "Nama", cell: ({ row }) => <span className="font-medium">{row.original.full_name}</span> },
+  { accessorKey: "email", header: "Email", cell: ({ row }) => <span className="break-all">{row.original.email}</span> },
+  { accessorKey: "role", header: "Peran", cell: ({ row }) => roleLabels[row.original.role] },
+  { accessorKey: "is_active", header: "Status", cell: ({ row }) => (
+    <Badge variant={row.original.is_active ? "secondary" : "outline"}>
+      {row.original.is_active ? "Aktif" : "Nonaktif"}
+    </Badge>
+  ) },
+  { accessorKey: "created_at", header: "Dibuat", cell: ({ row }) => (
+    <span className="whitespace-nowrap">{dateLabel(row.original.created_at)}</span>
+  ) },
+];
 
 /** Tampilkan akun tanpa membuka field kredensial yang tidak termasuk kontrak publik. */
 export function UsersPage() {
@@ -79,8 +87,8 @@ export function UsersPage() {
         </Button>
       </PageHeader>
 
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <label className="grid gap-1.5 text-sm" htmlFor="users-search">
+      <DataTableToolbar>
+        <label className="grid w-full max-w-md gap-1.5 text-sm" htmlFor="users-search">
           Cari pengguna
           <Input
             autoComplete="off"
@@ -109,7 +117,7 @@ export function UsersPage() {
             </NativeSelect>
           </label>
         </div>
-      </div>
+      </DataTableToolbar>
 
       <p className="mb-3 text-sm text-muted-foreground" aria-live="polite">
         {visibleUsers.length} pengguna
@@ -122,34 +130,7 @@ export function UsersPage() {
           {users.length ? "Tidak ada pengguna yang cocok dengan pencarian." : "Belum ada pengguna"}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border bg-background">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Peran</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Dibuat</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleUsers.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell className="font-medium">{record.full_name}</TableCell>
-                  <TableCell className="break-all">{record.email}</TableCell>
-                  <TableCell>{roleLabels[record.role]}</TableCell>
-                  <TableCell>
-                    <Badge variant={record.is_active ? "secondary" : "outline"}>
-                      {record.is_active ? "Aktif" : "Nonaktif"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">{dateLabel(record.created_at)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable columns={columns} data={visibleUsers} emptyMessage="Belum ada pengguna" getRowId={(record) => record.id} />
       )}
     </section>
   );

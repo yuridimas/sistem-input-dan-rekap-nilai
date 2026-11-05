@@ -44,8 +44,9 @@ describe("users page", () => {
     expect(screen.getByRole("row", { name: /Admin Seed admin@example.test Superadmin Nonaktif/ })).toBeInTheDocument();
     expect(screen.queryByText(/password/i)).not.toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByLabelText("Peran"), "lecturer");
-    await userEvent.selectOptions(screen.getByLabelText("Status"), "true");
+    const [roleFilter, activeFilter] = screen.getAllByRole("combobox");
+    await userEvent.selectOptions(roleFilter, "lecturer");
+    await userEvent.selectOptions(activeFilter, "true");
     await waitFor(() => expect(api.get).toHaveBeenLastCalledWith("/admin/users", {
       params: { role: "lecturer", is_active: true },
     }));
@@ -69,6 +70,26 @@ describe("users page", () => {
     vi.mocked(api.get).mockResolvedValueOnce({ data: users });
     await userEvent.click(screen.getByRole("button", { name: "Coba lagi" }));
     expect(await screen.findByText("Ani Putri")).toBeInTheDocument();
+  });
+
+  it("sorts users by name and paginates the resulting rows", async () => {
+    const manyUsers = Array.from({ length: 12 }, (_, index) => ({
+      ...users[0],
+      id: `user-${index}`,
+      email: `user-${index}@example.test`,
+      full_name: `Akun ${String(12 - index).padStart(2, "0")}`,
+    }));
+    vi.mocked(api.get).mockResolvedValueOnce({ data: manyUsers });
+    mount();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Nama" }));
+    expect(screen.getByRole("row", { name: /Akun 01/ })).toBeInTheDocument();
+    expect(screen.queryByRole("row", { name: /Akun 12/ })).not.toBeInTheDocument();
+    expect(screen.getByText("1–10 dari 12 baris")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Halaman berikutnya" }));
+    expect(screen.getByRole("row", { name: /Akun 11/ })).toBeInTheDocument();
+    expect(screen.queryByRole("row", { name: /Akun 01/ })).not.toBeInTheDocument();
   });
 
   it("redirects lecturers away from the superadmin-only route", async () => {

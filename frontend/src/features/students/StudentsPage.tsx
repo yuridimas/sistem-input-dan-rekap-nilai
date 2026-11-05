@@ -2,24 +2,18 @@
  * Daftar profil global mahasiswa dengan pencarian NIM/nama dan tautan riwayat.
  * Pembuatan tersedia untuk dosen/admin; perubahan profil ditampilkan hanya bagi superadmin.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { DataTable, DataTableToolbar } from "@/components/data-table";
 import {
   NoData,
   PageHeader,
   QueryState,
-  TextField,
 } from "@/features/academic/Management";
 import { useAcademicQuery, type Student } from "@/features/academic/api";
 import { useAuth } from "@/features/auth/useAuth";
@@ -43,6 +37,37 @@ export function StudentsPage() {
         .toLowerCase()
         .includes(search.toLowerCase()),
     ) ?? [];
+  const columns = useMemo<ColumnDef<Student>[]>(() => [
+    {
+      id: "student",
+      accessorFn: (student) => `${student.full_name} ${student.nim}`,
+      header: "Mahasiswa",
+      cell: ({ row }) => (
+        <div className="max-w-72 whitespace-normal">
+          <Link className="font-medium underline-offset-4 hover:underline" to={`/students/${row.original.id}`}>
+            {row.original.full_name}
+          </Link>
+          <p className="mt-1 text-xs text-muted-foreground">{row.original.nim}</p>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => <span className="max-w-64 break-all whitespace-normal">{row.original.email || "—"}</span>,
+    },
+    ...(user?.role === "superadmin" ? [{
+      id: "actions",
+      header: "Tindakan",
+      enableSorting: false,
+      cell: ({ row }: { row: { original: Student } }) => (
+        <div className="flex justify-end gap-2">
+          <Button aria-label={`Edit ${row.original.full_name}`} onClick={() => setDialog({ student: row.original })} size="sm" variant="outline">Edit</Button>
+          <Button aria-label={`Hapus ${row.original.full_name}`} onClick={() => setDialog({ student: row.original, deleting: true })} size="sm" variant="destructive">Hapus</Button>
+        </div>
+      ),
+    }] : []),
+  ], [user?.role]);
   return (
     <section className="mx-auto max-w-6xl">
       <PageHeader
@@ -54,15 +79,18 @@ export function StudentsPage() {
           Tambah mahasiswa
         </Button>
       </PageHeader>
-      <div className="mb-5 max-w-md">
-        <TextField
-          label="Cari mahasiswa"
+      <DataTableToolbar>
+        <label className="grid w-full max-w-md gap-1.5 text-sm" htmlFor="student-search">
+          Cari mahasiswa
+          <Input
+            id="student-search"
           onChange={(event) => setSearch(event.target.value)}
           placeholder="NIM atau nama lengkap"
           type="search"
           value={search}
-        />
-      </div>
+          />
+        </label>
+      </DataTableToolbar>
       {query.isPending || query.error ? (
         <QueryState query={query} />
       ) : rows.length === 0 ? (
@@ -74,61 +102,7 @@ export function StudentsPage() {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-background">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mahasiswa</TableHead>
-                <TableHead>Email</TableHead>
-                {user?.role === "superadmin" && (
-                  <TableHead className="text-right">Tindakan</TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell className="max-w-72 whitespace-normal">
-                    <Link
-                      className="font-medium underline-offset-4 hover:underline"
-                      to={`/students/${student.id}`}
-                    >
-                      {student.full_name}
-                    </Link>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {student.nim}
-                    </p>
-                  </TableCell>
-                  <TableCell className="max-w-64 break-all whitespace-normal">
-                    {student.email || "—"}
-                  </TableCell>
-                  {user?.role === "superadmin" && (
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          aria-label={`Edit ${student.full_name}`}
-                          onClick={() => setDialog({ student })}
-                          size="sm"
-                          variant="outline"
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          aria-label={`Hapus ${student.full_name}`}
-                          onClick={() => setDialog({ student, deleting: true })}
-                          size="sm"
-                          variant="destructive"
-                        >
-                          Hapus
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable columns={columns} data={rows} emptyMessage="Belum ada mahasiswa" getRowId={(student) => student.id} />
       )}
       {dialog && <StudentDialog {...dialog} close={() => setDialog(null)} />}
     </section>
