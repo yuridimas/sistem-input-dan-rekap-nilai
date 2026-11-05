@@ -2,22 +2,16 @@
  * Halaman audit dan retry pengiriman rilis untuk route superadmin.
  * queued menandai pengiriman menunggu; sent mencerminkan hasil transport yang dicatat worker.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, DataTableToolbar } from "@/components/data-table";
 import { errorMessage } from "@/features/academic/api";
 import { PageHeader, QueryState } from "@/features/academic/Management";
 import { useAuth } from "@/features/auth/useAuth";
@@ -98,6 +92,33 @@ export function NotificationsPage() {
   });
 
   const records = query.data ?? [];
+  const columns = useMemo<ColumnDef<NotificationRecord>[]>(() => [
+    { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
+    {
+      id: "student_email",
+      accessorFn: (row) => row.student_email ?? "",
+      header: "Email mahasiswa",
+      cell: ({ row }) => <span className="max-w-64 break-all whitespace-normal">{row.original.student_email ?? "Email tidak tersedia"}</span>,
+    },
+    { accessorKey: "created_at", header: "Dibuat", cell: ({ row }) => <span className="whitespace-nowrap">{dateLabel(row.original.created_at)}</span> },
+    { accessorKey: "sent_at", header: "Terkirim", cell: ({ row }) => <span className="whitespace-nowrap">{dateLabel(row.original.sent_at)}</span> },
+    { accessorKey: "error_message", header: "Detail kegagalan", enableSorting: false, cell: ({ row }) => <span className="max-w-sm whitespace-normal">{row.original.error_message ?? "—"}</span> },
+    {
+      id: "actions",
+      header: () => <span className="sr-only">Tindakan</span>,
+      enableSorting: false,
+      cell: ({ row }) => row.original.status === "failed" ? (
+        <Button
+          disabled={retry.isPending}
+          onClick={() => retry.mutate(row.original.id)}
+          type="button"
+          variant="outline"
+        >
+          {retry.isPending && retry.variables === row.original.id ? "Mengirim ulang…" : `Kirim ulang ke ${row.original.student_email ?? "mahasiswa"}`}
+        </Button>
+      ) : null,
+    },
+  ], [retry]);
 
   return (
     <section className="mx-auto max-w-6xl">
@@ -111,7 +132,7 @@ export function NotificationsPage() {
         </Button>
       </PageHeader>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <DataTableToolbar>
         <p className="text-sm text-muted-foreground">{records.length} notifikasi</p>
         <label className="flex items-center gap-2 text-sm" htmlFor="notification-status-filter">
           Status
@@ -122,7 +143,7 @@ export function NotificationsPage() {
             <NativeSelectOption value="failed">Gagal</NativeSelectOption>
           </NativeSelect>
         </label>
-      </div>
+      </DataTableToolbar>
 
       {query.isPending || query.error ? (
         <QueryState query={query} />
@@ -131,43 +152,7 @@ export function NotificationsPage() {
           Tidak ada notifikasi untuk status ini.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border bg-background">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Status</TableHead>
-                <TableHead>Email mahasiswa</TableHead>
-                <TableHead>Dibuat</TableHead>
-                <TableHead>Terkirim</TableHead>
-                <TableHead>Detail kegagalan</TableHead>
-                <TableHead><span className="sr-only">Tindakan</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {records.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell><StatusBadge status={row.status} /></TableCell>
-                  <TableCell className="max-w-64 break-all whitespace-normal">{row.student_email ?? "Email tidak tersedia"}</TableCell>
-                  <TableCell className="whitespace-nowrap">{dateLabel(row.created_at)}</TableCell>
-                  <TableCell className="whitespace-nowrap">{dateLabel(row.sent_at)}</TableCell>
-                  <TableCell className="max-w-sm whitespace-normal">{row.error_message ?? "—"}</TableCell>
-                  <TableCell>
-                    {row.status === "failed" && (
-                      <Button
-                        disabled={retry.isPending}
-                        onClick={() => retry.mutate(row.id)}
-                        type="button"
-                        variant="outline"
-                      >
-                        {retry.isPending && retry.variables === row.id ? "Mengirim ulang…" : `Kirim ulang ke ${row.student_email ?? "mahasiswa"}`}
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable columns={columns} data={records} getRowId={(row) => row.id} />
       )}
       {retry.error && (
         <Alert className="mt-4" variant="destructive">

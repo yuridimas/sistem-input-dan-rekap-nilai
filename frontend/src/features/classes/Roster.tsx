@@ -2,21 +2,15 @@
  * Pengelolaan keikutsertaan mahasiswa pada halaman kelas.
  * Operasi enrollment terpisah dari perubahan profil global dan tunduk penguncian nilai final.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/field";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/data-table";
 import {
   MutationDialog,
   NoData,
@@ -161,6 +155,39 @@ export function Roster({
   const query = useAcademicQuery<RosterEntry[]>(`/classes/${classId}/roster`);
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<RosterEntry | null>(null);
+  const columns = useMemo<ColumnDef<RosterEntry>[]>(() => [
+    {
+      id: "student",
+      accessorFn: (entry) => `${entry.student.full_name} ${entry.student.nim}`,
+      header: "Mahasiswa",
+      cell: ({ row }) => (
+        <div className="max-w-64 whitespace-normal">
+          <Link className="font-medium underline-offset-4 hover:underline" to={`/students/${row.original.student.id}`}>
+            {row.original.student.full_name}
+          </Link>
+          <p className="mt-1 text-xs text-muted-foreground">{row.original.student.nim}</p>
+        </div>
+      ),
+    },
+    {
+      id: "email",
+      accessorFn: (entry) => entry.student.email ?? "",
+      header: "Email",
+      cell: ({ row }) => <span className="max-w-56 break-all whitespace-normal">{row.original.student.email || "—"}</span>,
+    },
+    ...(!locked ? [{
+      id: "actions",
+      header: "Tindakan",
+      enableSorting: false,
+      cell: ({ row }: { row: { original: RosterEntry } }) => (
+        <div className="flex justify-end">
+          <Button aria-label={`Keluarkan ${row.original.student.full_name}`} onClick={() => setRemoving(row.original)} size="sm" variant="destructive">
+            Keluarkan
+          </Button>
+        </div>
+      ),
+    }] : []),
+  ], [locked]);
   return (
     <section className="flex flex-col gap-5" aria-labelledby="roster-title">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -177,51 +204,7 @@ export function Roster({
       ) : !query.data?.length ? (
         <NoData description="Daftarkan mahasiswa dengan NIM untuk mulai mengisi roster kelas." />
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-background">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mahasiswa</TableHead>
-                <TableHead>Email</TableHead>
-                {!locked && (
-                  <TableHead className="text-right">Tindakan</TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {query.data.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="max-w-64 whitespace-normal">
-                    <Link
-                      className="font-medium underline-offset-4 hover:underline"
-                      to={`/students/${row.student.id}`}
-                    >
-                      {row.student.full_name}
-                    </Link>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {row.student.nim}
-                    </p>
-                  </TableCell>
-                  <TableCell className="max-w-56 break-all whitespace-normal">
-                    {row.student.email || "—"}
-                  </TableCell>
-                  {!locked && (
-                    <TableCell className="text-right">
-                      <Button
-                        aria-label={`Keluarkan ${row.student.full_name}`}
-                        onClick={() => setRemoving(row)}
-                        size="sm"
-                        variant="destructive"
-                      >
-                        Keluarkan
-                      </Button>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable columns={columns} data={query.data} getRowId={(row) => row.id} />
       )}
       {adding && !locked && (
         <EnrollmentDialog classId={classId} close={() => setAdding(false)} />

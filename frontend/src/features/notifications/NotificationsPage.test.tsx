@@ -68,10 +68,10 @@ describe("notifications page", () => {
     expect(api.get).toHaveBeenCalledWith("/admin/notifications", { params: { status: "failed" } });
     expect(screen.getByRole("columnheader", { name: "Dibuat" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Terkirim" })).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText("Status"), "sent");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Status" }), "sent");
     expect(screen.getByText("lain@example.com")).toBeInTheDocument();
     expect(screen.queryByText("mahasiswa@example.com")).not.toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText("Status"), "all");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Status" }), "all");
     await userEvent.click(screen.getByRole("button", { name: "Kirim ulang ke mahasiswa@example.com" }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/notifications/failed-1/retry"));
@@ -79,7 +79,18 @@ describe("notifications page", () => {
       const email = screen.getByText("mahasiswa@example.com");
       expect(email.closest("tr")).toHaveTextContent("Antrean");
     });
-    expect(screen.getByLabelText("Status")).toHaveValue("queued");
+    expect(screen.getByRole("combobox", { name: "Status" })).toHaveValue("queued");
+  });
+
+  it("sorts the notification list by student email", async () => {
+    mockNotificationList();
+    mount();
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Status" }), "all");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Email mahasiswa" }));
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(rows[0]).toHaveTextContent("lain@example.com");
+    expect(rows[1]).toHaveTextContent("mahasiswa@example.com");
   });
 
   it("redirects lecturers away from the superadmin-only route", async () => {
