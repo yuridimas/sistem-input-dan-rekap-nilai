@@ -42,7 +42,8 @@ async def dashboard_context():
                 db.add_all(users)
                 await db.flush()
                 courses = [Course(code=f"DASH-{i}-{suffix}", name=f"Course {i}", credits=3,
-                                  semester="2026/1", created_by=users[0 if i == 2 else 2].id)
+                                  semester="2026/1", created_by=users[0 if i == 2 else 2].id,
+                                  created_at=datetime(2026, 10, i + 1, tzinfo=timezone.utc))
                            for i in range(3)]
                 db.add_all(courses)
                 await db.flush()
@@ -102,7 +103,9 @@ async def test_dashboard_lecturer_counts_assigned_not_created_courses(dashboard_
     assert response.status_code == 200, response.text
     data = response.json()
     assert (data["course_count"], data["class_count"], data["pending_class_count"]) == (2, 5, 4)
-    assert [course["id"] for course in data["courses"]] == [str(course.id) for course in courses[:2]]
+    expected_courses = sorted(courses[:2], key=lambda course: course.created_at, reverse=True)
+    assert [course["id"] for course in data["courses"]] == [str(course.id) for course in expected_courses]
+    assert datetime.fromisoformat(data["courses"][0]["created_at"]) == courses[1].created_at
     rows = {row["id"]: row for course in data["courses"] for row in course["classes"]}
     assert str(classes[1].id) not in rows
     assert [rows[str(classes[i].id)]["status"] for i in (0, 2, 3, 4, 5)] == ["pending"] * 4 + ["released"]
@@ -134,6 +137,28 @@ async def test_dashboard_empty_account(dashboard_context):
     assert response.status_code == 200
     assert response.json() == {"course_count": 0, "class_count": 0, "pending_class_count": 0,
                                "courses": [], "recently_released": []}
+
+
+@pytest.mark.asyncio
+async def test_dashboard_orders_courses_by_creation_time(dashboard_context):
+    """Expose mata kuliah terbaru pertama agar dashboard dapat membatasi preview."""
+    client, db, users, _, _, headers, add_class = dashboard_context
+    suffix = uuid.uuid4().hex
+    courses = [Course(code=f"RECENT-{index}-{suffix}", name=f"Recent {index}", credits=3,
+                      semester="2030/1", created_by=users[0].id,
+                      created_at=datetime(2030, 1, 1, tzinfo=timezone.utc) + timedelta(days=index))
+               for index in range(7)]
+    db.add_all(courses)
+    await db.flush()
+    for index, course in enumerate(courses):
+        await add_class(course, users[0], f"R{index}", [None])
+
+    response = await client.get("/dashboard/summary", headers=headers[0])
+    assert response.status_code == 200, response.text
+    data = response.json()
+    recent_ids = [row["id"] for row in data["courses"] if row["id"] in {str(course.id) for course in courses}]
+    assert recent_ids == [str(course.id) for course in reversed(courses)]
+    assert all("created_at" in row for row in data["courses"])
 
 
 @pytest.mark.asyncio

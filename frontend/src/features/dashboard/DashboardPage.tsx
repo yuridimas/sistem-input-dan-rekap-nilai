@@ -2,15 +2,16 @@
  * Ringkasan akademik dan rilis terbaru bagi admin maupun dosen.
  * Memakai satu query summary dan membuka baris kelas dari tindakan rilis terbaru.
  */
-import { ArrowUpRight, BookOpen, CheckCheck, Clock3, Layers } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
 import { CourseOverview } from "./CourseOverview";
 import { useDashboard } from "./api";
-
-const releaseDate = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" });
+import { RecentReleases } from "./RecentReleases";
+import { SummaryCards } from "./SummaryCards";
 
 /**
  * Fokus/gulir baris kelas dengan menghormati prefers-reduced-motion pengguna.
@@ -50,12 +51,6 @@ export function DashboardPage() {
   }
 
   const admin = user?.role === "superadmin";
-  const summaryCards = data ? [
-    { label: "Mata Kuliah", value: data.course_count, icon: BookOpen, note: admin ? "Seluruh mata kuliah" : "Mata kuliah yang Anda ampu" },
-    { label: "Jumlah Kelas", value: data.class_count, icon: Layers, note: "Di seluruh tahun akademik" },
-    { label: "Belum Dirilis", value: data.pending_class_count, icon: Clock3, note: "Termasuk kelas kosong dan draft" },
-  ] : [];
-
   return (
     <section aria-labelledby="dashboard-title" className="mx-auto max-w-6xl">
       <p className="text-sm font-medium text-muted-foreground">Ruang akademik</p>
@@ -72,15 +67,7 @@ export function DashboardPage() {
         </div>
       ) : data && (
         <>
-          <div className="mt-7 grid gap-4 sm:grid-cols-3">
-            {summaryCards.map(({ label, value, icon: Icon, note }) => (
-              <div className="rounded-xl border border-border bg-background p-5 sm:p-6" key={label}>
-                <div className="flex items-center justify-between gap-3"><h2 className="text-sm font-medium text-muted-foreground">{label}</h2><Icon aria-hidden="true" className="size-4 text-muted-foreground" /></div>
-                <p className="mt-4 text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">{note}</p>
-              </div>
-            ))}
-          </div>
+          <SummaryCards admin={admin} data={data} />
 
           <div className="mt-9 grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
             <section aria-labelledby="courses-title" className="min-w-0">
@@ -91,24 +78,15 @@ export function DashboardPage() {
                   <h3 className="mt-4 text-sm font-semibold">Belum ada mata kuliah</h3>
                   <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{admin ? "Mata kuliah dan kelas akan muncul di sini setelah ditambahkan." : "Mata kuliah akan muncul setelah Anda ditugaskan sebagai dosen pengampu kelas."}</p>
                 </div>
-              ) : <div className="space-y-3">{data.courses.map((course) => <CourseOverview course={course} expanded={expandedCourse === course.id} key={course.id} onToggle={() => setExpandedCourse(expandedCourse === course.id ? null : course.id)} />)}</div>}
+              ) : (
+                <>
+                  {data.course_count > 5 && <div className="mb-3 flex justify-end"><Link className="text-sm font-medium text-primary underline-offset-4 hover:underline" to="/courses">Lihat semua</Link></div>}
+                  <div className="space-y-3">{data.courses.slice(0, 5).map((course) => <CourseOverview course={course} expanded={expandedCourse === course.id} key={course.id} onToggle={() => setExpandedCourse(expandedCourse === course.id ? null : course.id)} />)}</div>
+                </>
+              )}
             </section>
 
-            <section aria-labelledby="releases-title" className="min-w-0">
-              <h2 className="mb-4 text-base font-semibold" id="releases-title">Rilis Terbaru</h2>
-              <div className="overflow-hidden rounded-xl border border-border bg-background">
-                {data.recently_released.length === 0 ? (
-                  <div className="p-6"><CheckCheck aria-hidden="true" className="size-6 text-muted-foreground" /><h3 className="mt-4 text-sm font-semibold">Belum ada nilai dirilis</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">Kelas dengan seluruh nilai yang telah difinalisasi akan muncul di sini.</p></div>
-                ) : <ul className="divide-y divide-border">{data.recently_released.map((release) => (
-                  <li key={release.id}>
-                    <button className="flex w-full items-start gap-3 p-5 text-left outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring" onClick={() => openRelease(release.course_id, release.id)} type="button">
-                      <span className="min-w-0 flex-1"><span className="block break-words text-xs font-medium text-muted-foreground">{release.course_code}</span><span className="mt-1 block break-words text-sm font-semibold">{release.course_name}</span><span className="mt-1 block break-words text-xs text-muted-foreground">Kelas {release.section} · {release.academic_year}</span><span className="mt-3 block text-xs text-muted-foreground">{release.released_at ? <time dateTime={release.released_at}>{releaseDate.format(new Date(release.released_at))}</time> : "Waktu rilis tidak tersedia"}</span></span>
-                      <ArrowUpRight aria-hidden="true" className="mt-1 size-4 shrink-0 text-muted-foreground" />
-                    </button>
-                  </li>
-                ))}</ul>}
-              </div>
-            </section>
+            <RecentReleases onSelect={openRelease} releases={data.recently_released} />
           </div>
         </>
       )}

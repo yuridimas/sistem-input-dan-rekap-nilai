@@ -37,7 +37,8 @@ async def get_summary(db: AsyncSession, current_user: User) -> DashboardSummaryR
         course_id = row["course_id"]
         if course_id not in courses:
             courses[course_id] = DashboardCourseRead(
-                id=course_id, code=row["code"], name=row["name"], semester=row["semester"], classes=[],
+                id=course_id, code=row["code"], name=row["name"], semester=row["semester"],
+                created_at=row["created_at"], classes=[],
             )
         if row["class_id"] is None:
             continue

@@ -32,6 +32,7 @@ class DashboardCourseRead(BaseModel):
     code: str
     name: str
     semester: str
+    created_at: datetime
     classes: list[DashboardClassRead]
 
 

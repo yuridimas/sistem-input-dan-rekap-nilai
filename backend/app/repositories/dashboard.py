@@ -44,7 +44,7 @@ async def list_summary_rows(db: AsyncSession, lecturer_id: uuid.UUID | None) -> 
     )
     statement = (
         select(
-            Course.id.label("course_id"), Course.code, Course.name, Course.semester,
+            Course.id.label("course_id"), Course.code, Course.name, Course.semester, Course.created_at,
             Class.id.label("class_id"), Class.section, Class.academic_year,
             func.coalesce(counts.c.student_count, 0).label("student_count"),
             func.coalesce(counts.c.finalized_count, 0).label("finalized_count"),
@@ -53,7 +53,7 @@ async def list_summary_rows(db: AsyncSession, lecturer_id: uuid.UUID | None) -> 
         .select_from(Course)
         .outerjoin(Class, Class.course_id == Course.id)
         .outerjoin(counts, counts.c.class_id == Class.id)
-        .order_by(Course.code, Course.id, Class.academic_year.desc(), Class.section, Class.id)
+        .order_by(Course.created_at.desc(), Course.id, Class.academic_year.desc(), Class.section, Class.id)
     )
     if lecturer_id is not None:
         statement = statement.where(Class.lecturer_id == lecturer_id)

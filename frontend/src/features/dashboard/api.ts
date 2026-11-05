@@ -26,6 +26,7 @@ export interface DashboardCourse {
   code: string;
   name: string;
   semester: string;
+  created_at: string;
   classes: DashboardClass[];
 }
 
@@ -41,7 +42,7 @@ export interface DashboardRelease extends DashboardClass {
 /**
  * Hitungan dan kelompok kelas siap tampil dari endpoint summary.
  */
-interface DashboardSummary {
+export interface DashboardSummary {
   course_count: number;
   class_count: number;
   pending_class_count: number;
