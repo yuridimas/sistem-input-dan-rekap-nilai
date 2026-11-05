@@ -13,7 +13,6 @@ import { lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { Layout } from "@/components/Layout";
-import { PlaceholderPage } from "@/components/PlaceholderPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
@@ -47,6 +46,11 @@ const NotificationsPage = lazy(() =>
     default: module.NotificationsPage,
   })),
 );
+const UsersPage = lazy(() =>
+  import("@/features/users/UsersPage").then((module) => ({
+    default: module.UsersPage,
+  })),
+);
 
 const queryClient = new QueryClient();
 
@@ -65,10 +69,7 @@ const router = createBrowserRouter(
           <Route path="/students/:studentId" element={<StudentDetailPage />} />
           <Route element={<ProtectedRoute allowedRoles={["superadmin"]} />}>
             <Route path="/notifications" element={<NotificationsPage />} />
-            <Route
-              path="/users"
-              element={<PlaceholderPage title="Pengguna" />}
-            />
+            <Route path="/users" element={<UsersPage />} />
           </Route>
         </Route>
       </Route>
