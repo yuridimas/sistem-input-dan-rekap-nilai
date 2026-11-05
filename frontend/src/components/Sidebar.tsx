@@ -2,23 +2,23 @@
  * Navigasi bersama untuk Layout; item administratif mengikuti role profil sesi.
  * Batas tampilan menu melengkapi guard UI, sedangkan otorisasi tetap dilakukan backend.
  */
-import { Bell, BookOpen, GraduationCap, LayoutDashboard, Users, X } from "lucide-react";
+import { BookOpen, GraduationCap, LayoutDashboard, Users, X } from "lucide-react";
 import { useRef, type KeyboardEvent } from "react";
 import { NavLink } from "react-router-dom";
 
 import type { AuthUser } from "@/stores/authStore";
+import { SessionProfile } from "@/components/SessionProfile";
 
 /**
  * Render navigasi desktop/mobile; onClose mengembalikan kendali fokus kepada Layout.
  */
-export function Sidebar({ user, open, onClose }: { user: AuthUser; open: boolean; onClose: () => void }) {
+export function Sidebar({ user, open, onClose, onLogout }: { user: AuthUser; open: boolean; onClose: () => void; onLogout: () => void }) {
   const sidebarRef = useRef<HTMLElement>(null);
   const items = [
     { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
     { label: user.role === "superadmin" ? "Semua Mata Kuliah" : "Mata Kuliah Saya", to: "/courses", icon: BookOpen },
     { label: "Mahasiswa", to: "/students", icon: GraduationCap },
     ...(user.role === "superadmin" ? [{ label: "Pengguna", to: "/users", icon: Users }] : []),
-    ...(user.role === "superadmin" ? [{ label: "Notifikasi", to: "/notifications", icon: Bell }] : []),
   ];
 
   /**
@@ -73,11 +73,7 @@ export function Sidebar({ user, open, onClose }: { user: AuthUser; open: boolean
           ))}
         </nav>
 
-        <div className="mt-auto rounded-xl border border-border bg-muted/40 p-3">
-          <p className="text-xs font-medium text-muted-foreground">Masuk sebagai</p>
-          <p className="mt-1 truncate text-sm font-semibold">{user.full_name}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{user.role === "superadmin" ? "Superadmin" : "Dosen"}</p>
-        </div>
+        <SessionProfile onLogout={onLogout} user={user} />
       </aside>
     </>
   );
