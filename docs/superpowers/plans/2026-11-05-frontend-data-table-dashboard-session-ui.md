@@ -1,6 +1,6 @@
 # Refactor Data Table, Dashboard, dan Profil Sesi Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Standarkan tabel operasional dengan pola Data Table bergaya shadcn di atas Base UI, lalu pecah dashboard dan informasi pengguna login menjadi komponen yang mudah dipelihara.
 
@@ -35,19 +35,19 @@
 ### Daftar operasional desktop
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│ Judul halaman                                         [Aksi utama]      │
-│ Deskripsi singkat                                                        │
-├─────────────────────────────────────────────────────────────────────────┤
-│ [Cari ...                                                  ]             │
-│ 24 baris                                                                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│   │ Kolom data              │ Kolom data       ↕ │ Kolom data               │
-│   │ Isi baris                │ Isi baris           │ Isi baris                 │
-│   │ ...                      │ ...                 │ ...                       │
-├─────────────────────────────────────────────────────────────────────────┤
-│ 24 baris                                        [‹] 1  2  3 [›]         │
-└─────────────────────────────────────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Judul halaman                                         [Aksi utama]      â”‚
+â”‚ Deskripsi singkat                                                        â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ [Cari ...                                                  ]             â”‚
+â”‚ 24 baris                                                                  â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚   â”‚ Kolom data              â”‚ Kolom data       â†• â”‚ Kolom data               â”‚
+â”‚   â”‚ Isi baris                â”‚ Isi baris           â”‚ Isi baris                 â”‚
+â”‚   â”‚ ...                      â”‚ ...                 â”‚ ...                       â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ 24 baris                                        [â€¹] 1  2  3 [â€º]         â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 Wireframe ini hanya memuat pencarian, kolom data, dan pagination. Filter spesifik halaman serta aksi yang sudah ada tetap direncanakan pada task halaman terkait, tanpa mengasumsikan semuanya muncul pada setiap tabel. Sorting tersedia hanya untuk kolom yang dinyatakan sortable.
@@ -55,18 +55,18 @@ Wireframe ini hanya memuat pencarian, kolom data, dan pagination. Filter spesifi
 ### Daftar operasional layar sempit
 
 ```text
-┌──────────────────────────────┐
-│ Judul             [Aksi]     │
-│ Deskripsi                    │
-│ [Cari....................]  │
-│ [Filter ▾] [Reset]           │
-│ ┌──────────────────────────┐ │
-│ │ Identitas utama          │ │
-│ │ Email / data pendukung   │ │
-│ │ Status            [⋯]    │ │
-│ └──────────────────────────┘ │
-│ 1–10 dari 24      [‹] [›]    │
-└──────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Judul             [Aksi]     â”‚
+â”‚ Deskripsi                    â”‚
+â”‚ [Cari....................]  â”‚
+â”‚ [Filter â–¾] [Reset]           â”‚
+â”‚ â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
+â”‚ â”‚ Identitas utama          â”‚ â”‚
+â”‚ â”‚ Email / data pendukung   â”‚ â”‚
+â”‚ â”‚ Status            [â‹¯]    â”‚ â”‚
+â”‚ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
+â”‚ 1â€“10 dari 24      [â€¹] [â€º]    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 Untuk kolom tabel yang tidak muat, container tabel tetap dapat digulir horizontal dengan header yang jelas. Perubahan ke kartu per baris hanya dilakukan untuk halaman yang desain saat ini memang menyembunyikan/mengatur ulang kolom pada mobile, bukan sebagai transformasi otomatis library.
@@ -74,20 +74,20 @@ Untuk kolom tabel yang tidak muat, container tabel tetap dapat digulir horizonta
 ### Dashboard
 
 ```text
-┌────────────────────────────────────────────────────────────────────┐
-│ Dashboard                                                          │
-│ Ringkasan sesuai peran pengguna                                     │
-├────────────────────────────────────────────────────────────────────┤
-│ [Mata kuliah]        [Jumlah kelas]         [Belum dirilis]         │
-├────────────────────────────────────────┬───────────────────────────┤
-│ Mata Kuliah Saya / Semua Mata Kuliah   │ Rilis Terbaru             │
-│ Maksimal 5 terbaru       [Lihat semua] │ Daftar rilis ringkas      │
-│ [CourseOverview]                       │                           │
-│ ... hingga 5                            │                           │
-└────────────────────────────────────────┴───────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Dashboard                                                          â”‚
+â”‚ Ringkasan sesuai peran pengguna                                     â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ [Mata kuliah]        [Jumlah kelas]         [Belum dirilis]         â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ Mata Kuliah Saya / Semua Mata Kuliah   â”‚ Rilis Terbaru             â”‚
+â”‚ Maksimal 5 terbaru       [Lihat semua] â”‚ Daftar rilis ringkas      â”‚
+â”‚ [CourseOverview]                       â”‚                           â”‚
+â”‚ ... hingga 5                            â”‚                           â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
-Ekstraksi dashboard mempertahankan hierarki dan perilaku yang sudah ada: kartu statistik, ekspansi `CourseOverview`, state loading/error, dan fokus ke kelas dari item rilis. Daftar kursus dibatasi lima item terbaru berdasarkan waktu pembuatan; tautan “Lihat semua” menuju halaman mata kuliah, sedangkan angka total tetap mencerminkan seluruh data.
+Ekstraksi dashboard mempertahankan hierarki dan perilaku yang sudah ada: kartu statistik, ekspansi `CourseOverview`, state loading/error, dan fokus ke kelas dari item rilis. Daftar kursus dibatasi lima item terbaru berdasarkan waktu pembuatan; tautan â€œLihat semuaâ€ menuju halaman mata kuliah, sedangkan angka total tetap mencerminkan seluruh data.
 
 ### Profil pengguna sesi
 
@@ -96,7 +96,7 @@ Header desktop: [Judul halaman]                                  [Notifikasi]
 Sidebar bawah:  [Inisial] Nama / Email / Peran
                 [Keluar]
 
-Header mobile:  [☰] [Judul halaman]                         [Notifikasi]
+Header mobile:  [â˜°] [Judul halaman]                         [Notifikasi]
 Sidebar mobile setelah dibuka: identitas, peran, dan tombol keluar di bawah
 Sidebar menu: Dashboard / Mata Kuliah / Mahasiswa / Pengguna (admin)
 ```
@@ -139,12 +139,12 @@ Profil sesi dan tombol keluar hanya muncul di bagian bawah sidebar untuk menghin
 
 **Interfaces:** Ikuti `Global Interfaces`. Gunakan row model core, filtered, sorted, dan pagination dari TanStack Table; jangan menambahkan fetch atau state global.
 
-- [ ] Tambahkan `@tanstack/react-table` sebagai dependency dan pastikan lockfile konsisten.
-- [ ] Tulis test untuk render kolom/baris, sorting, pencarian via toolbar caller, halaman kosong, dan perpindahan pagination.
-- [ ] Implementasikan adapter DataTable menggunakan `flexRender` dan primitive lokal dari `components/ui/table`.
-- [ ] Implementasikan kontrol pagination dengan label aksesibel, disabled state di batas halaman, dan page size.
-- [ ] Implementasikan toolbar berbasis slot sehingga kontrol domain tetap di halaman pemanggil.
-- [ ] Verifikasi hasil TypeScript, test komponen, dan lint frontend.
+- [x] Tambahkan `@tanstack/react-table` sebagai dependency dan pastikan lockfile konsisten.
+- [x] Tulis test untuk render kolom/baris, sorting, pencarian via toolbar caller, halaman kosong, dan perpindahan pagination.
+- [x] Implementasikan adapter DataTable menggunakan `flexRender` dan primitive lokal dari `components/ui/table`.
+- [x] Implementasikan kontrol pagination dengan label aksesibel, disabled state di batas halaman, dan page size.
+- [x] Implementasikan toolbar berbasis slot sehingga kontrol domain tetap di halaman pemanggil.
+- [x] Verifikasi hasil TypeScript, test komponen, dan lint frontend.
 
 ## Task 2: Migrasikan daftar pengguna, mata kuliah, dan mahasiswa
 
@@ -156,11 +156,11 @@ Profil sesi dan tombol keluar hanya muncul di bagian bawah sidebar untuk menghin
 
 **Interfaces:** Halaman tetap memiliki query React Query, pencarian/filter domain, dialog, dan aturan role. DataTable menerima hasil terfilter dan definisi kolom halaman.
 
-- [ ] Ubah setiap halaman untuk menyediakan `ColumnDef` dengan ID stabil; render link, badge, dan tombol aksi melalui `cell`.
-- [ ] Pertahankan loading/error/empty state di lapisan halaman dan gunakan `DataTable` hanya saat ada baris.
-- [ ] Pastikan pencarian/filter yang ada tetap berfungsi dan pagination/sorting tidak memodifikasi query API.
-- [ ] Tambahkan coverage perilaku sorting/pagination dan visibilitas kolom aksi sesuai role.
-- [ ] Verifikasi test halaman terkait dan lint frontend.
+- [x] Ubah setiap halaman untuk menyediakan `ColumnDef` dengan ID stabil; render link, badge, dan tombol aksi melalui `cell`.
+- [x] Pertahankan loading/error/empty state di lapisan halaman dan gunakan `DataTable` hanya saat ada baris.
+- [x] Pastikan pencarian/filter yang ada tetap berfungsi dan pagination/sorting tidak memodifikasi query API.
+- [x] Tambahkan coverage perilaku sorting/pagination dan visibilitas kolom aksi sesuai role.
+- [x] Verifikasi test halaman terkait dan lint frontend.
 
 ## Task 3: Migrasikan notifikasi dan roster kelas
 
@@ -171,11 +171,11 @@ Profil sesi dan tombol keluar hanya muncul di bagian bawah sidebar untuk menghin
 
 **Interfaces:** Gunakan fondasi DataTable dari Task 1. Aksi resend/notifikasi atau pengelolaan roster tetap dipasok melalui kolom aksi milik halaman.
 
-- [ ] Petakan kolom sortable secara eksplisit; field pesan error panjang dan email mempertahankan wrapping yang terbaca.
-- [ ] Pertahankan filter status notifikasi, aksi retry/resend yang ada, dan aturan roster.
-- [ ] Pastikan tabel lebar responsif dan pagination reset ke halaman valid setelah filter berubah.
-- [ ] Tambahkan coverage filter, aksi, dan kondisi hasil kosong yang relevan.
-- [ ] Verifikasi test halaman terkait dan lint frontend.
+- [x] Petakan kolom sortable secara eksplisit; field pesan error panjang dan email mempertahankan wrapping yang terbaca.
+- [x] Pertahankan filter status notifikasi, aksi retry/resend yang ada, dan aturan roster.
+- [x] Pastikan tabel lebar responsif dan pagination reset ke halaman valid setelah filter berubah.
+- [x] Tambahkan coverage filter, aksi, dan kondisi hasil kosong yang relevan.
+- [x] Verifikasi test halaman terkait dan lint frontend.
 
 ## Task 4: Pisahkan bagian dashboard
 
@@ -188,13 +188,13 @@ Profil sesi dan tombol keluar hanya muncul di bagian bawah sidebar untuk menghin
 
 **Interfaces:** Komponen menerima props data eksplisit; query, role lookup, ekspansi course, dan refocus baris tetap dikendalikan `DashboardPage`. Objek `DashboardCourse` menyertakan `created_at`; response mengurutkan mata kuliah terbaru lebih dahulu, dan UI membatasi daftar ke lima.
 
-- [ ] Pindahkan render kartu statistik ke `SummaryCards` tanpa mengubah label dan nilai.
-- [ ] Pindahkan panel rilis ke `RecentReleases` dengan callback untuk membuka course/class.
-- [ ] Sertakan `created_at` mata kuliah pada endpoint ringkasan dan urutkan daftar menurun berdasarkan waktu pembuatan dengan ID sebagai tie-break stabil; pertahankan hitungan total.
-- [ ] Tampilkan paling banyak lima mata kuliah terbaru dan tautan “Lihat semua” menuju `/courses`.
-- [ ] Pertahankan aria labels, reduced motion, fokus setelah ekspansi, state loading/error, dan empty state.
-- [ ] Tambahkan test untuk data role admin/dosen dan aktivasi item rilis yang memanggil callback.
-- [ ] Verifikasi test dashboard terkait dan lint frontend.
+- [x] Pindahkan render kartu statistik ke `SummaryCards` tanpa mengubah label dan nilai.
+- [x] Pindahkan panel rilis ke `RecentReleases` dengan callback untuk membuka course/class.
+- [x] Sertakan `created_at` mata kuliah pada endpoint ringkasan dan urutkan daftar menurun berdasarkan waktu pembuatan dengan ID sebagai tie-break stabil; pertahankan hitungan total.
+- [x] Tampilkan paling banyak lima mata kuliah terbaru dan tautan â€œLihat semuaâ€ menuju `/courses`.
+- [x] Pertahankan aria labels, reduced motion, fokus setelah ekspansi, state loading/error, dan empty state.
+- [x] Tambahkan test untuk data role admin/dosen dan aktivasi item rilis yang memanggil callback.
+- [x] Verifikasi test dashboard terkait dan lint frontend.
 
 ## Task 5: Satukan tampilan info pengguna login
 
@@ -206,19 +206,18 @@ Profil sesi dan tombol keluar hanya muncul di bagian bawah sidebar untuk menghin
 
 **Interfaces:** `SessionProfile` menerima `user: AuthUser` dan `onLogout: () => void`; komponen menampilkan seluruh identitas serta tombol keluar hanya di bawah Sidebar. Layout tetap memiliki efek logout. Sidebar tidak menampilkan Notifikasi; header menampilkan tautan Notifikasi untuk superadmin.
 
-- [ ] Pindahkan nama, email, inisial, label peran, dan tombol keluar ke `SessionProfile` yang ditempatkan hanya di dasar Sidebar.
-- [ ] Pertahankan callback logout di Layout dan sambungkan ke tombol keluar pada profil sidebar.
-- [ ] Hapus tautan Notifikasi dari Sidebar; tambahkan tautan Notifikasi di sisi kanan header untuk superadmin.
-- [ ] Pertahankan header responsif, truncation, dan label aksesibel; pastikan tidak ada duplikasi profil sesi.
-- [ ] Tambahkan test profil sidebar, tautan notifikasi header, dan aksi logout.
-- [ ] Verifikasi test terkait dan lint frontend.
+- [x] Pindahkan nama, email, inisial, label peran, dan tombol keluar ke `SessionProfile` yang ditempatkan hanya di dasar Sidebar.
+- [x] Pertahankan callback logout di Layout dan sambungkan ke tombol keluar pada profil sidebar.
+- [x] Hapus tautan Notifikasi dari Sidebar; tambahkan tautan Notifikasi di sisi kanan header untuk superadmin.
+- [x] Pertahankan header responsif, truncation, dan label aksesibel; pastikan tidak ada duplikasi profil sesi.
+- [x] Tambahkan test profil sidebar, tautan notifikasi header, dan aksi logout.
+- [x] Verifikasi test terkait dan lint frontend.
 
 ## Task 6: Integrasi dan validasi cakupan
 
-**Files:** Seluruh file pada Task 1–5; referensi seluruh pemakai `components/ui/table.tsx`.
+**Files:** Seluruh file pada Task 1â€“5; referensi seluruh pemakai `components/ui/table.tsx`.
 
-- [ ] Periksa semua pemakai tabel: migrasikan hanya daftar data operasional yang disebutkan; pastikan matriks nilai/laporan tetap memakai primitive tabel.
-- [ ] Pastikan tak ada import atau dependency TanStack Table yang tidak digunakan dan primitive tabel lama tetap kompatibel.
-- [ ] Jalankan test frontend, `npm run build`, dan `npm run lint` dari `frontend/`.
-- [ ] Review diff terhadap wireframe, keyboard accessibility, role, state query, dan responsivitas.
-
+- [x] Periksa semua pemakai tabel: migrasikan hanya daftar data operasional yang disebutkan; pastikan matriks nilai/laporan tetap memakai primitive tabel.
+- [x] Pastikan tak ada import atau dependency TanStack Table yang tidak digunakan dan primitive tabel lama tetap kompatibel.
+- [x] Jalankan test frontend, `npm run build`, dan `npm run lint` dari `frontend/`.
+- [x] Review diff terhadap wireframe, keyboard accessibility, role, state query, dan responsivitas.
