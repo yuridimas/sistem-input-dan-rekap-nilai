@@ -16,7 +16,7 @@ class SeedConfig:
     max_samples: int
     max_rows: int
     reference_time: datetime
-    generator_version: str = "2"
+    generator_version: str = "3"
 
 
 def resolve_config(*, dataset: str, profile: str = "manual", seed: int | None = None,

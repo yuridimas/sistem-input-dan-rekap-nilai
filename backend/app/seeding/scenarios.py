@@ -137,7 +137,7 @@ def _uid(namespace: uuid.UUID, key: str) -> uuid.UUID:
 
 
 def build_plan(config: SeedConfig) -> SeedPlan:
-    """Build a valid reusable academic graph and independent request samples."""
+    """Build a bounded multi-course graph and independent request samples."""
     namespace = uuid.uuid5(uuid.NAMESPACE_URL, f"grades-seed:{config.dataset}")
     rng = random.Random(config.seed)
     fake = Faker(locale="id_ID")
@@ -149,53 +149,157 @@ def build_plan(config: SeedConfig) -> SeedPlan:
     admin = User(id=uid("admin"), email=f"admin-{config.dataset}@example.test", password_hash="${SEED_PASSWORD_HASH}", full_name="Administrator Seed", role=UserRole.SUPERADMIN.value, is_active=True)
     lecturer = User(id=uid("lecturer"), email=f"lecturer-{config.dataset}@example.test", password_hash="${SEED_PASSWORD_HASH}", full_name=fake.name(), role=UserRole.LECTURER.value, is_active=True)
     foreign_lecturer = User(id=uid("foreign-lecturer"), email=f"foreign-{config.dataset}@example.test", password_hash="${SEED_PASSWORD_HASH}", full_name=fake.name(), role=UserRole.LECTURER.value, is_active=True)
-    course = Course(id=uid("course"), code=f"SEED-{config.dataset[:30]}", name="Pengantar Sistem Informasi", credits=3, semester="2026/1", created_by=lecturer.id, created_at=config.reference_time)
-    foreign_class = Class(id=uid("foreign-class"), course_id=course.id, section="FOREIGN", lecturer_id=foreign_lecturer.id, academic_year="2026/2027", created_at=config.reference_time)
-    objects.extend([admin, lecturer, foreign_lecturer, course, foreign_class])
-    case_counts: dict[str, int] = {}
+    sample_counts = {
+        case_id: random.Random(int(hashlib.sha256(f"{config.seed}:{case_id}".encode()).hexdigest(), 16))
+        .randint(config.min_samples, config.max_samples)
+        for case_id, *_ in _CASES
+    }
+    case_counts = dict(sample_counts)
+    finalize_classes = sample_counts["finalize.complete"]
+    case_class_count = len(_CASES) + finalize_classes - 1
+    required_class_slots = case_class_count + 1
+    course_count = rng.randint(max(5, (required_class_slots + 4) // 5), 15)
+    course_rows = [
+        Course(id=uid(f"course:{index}"), code=f"SEED-{config.dataset}-{index + 1:02d}",
+               name=f"Mata Kuliah Dummy {index + 1:02d}", credits=rng.choice((2, 3, 4)),
+               semester=f"2026/{rng.choice((1, 2))}", created_by=lecturer.id,
+               created_at=config.reference_time)
+        for index in range(course_count)
+    ]
+    class_slots_per_course = [2] * course_count
+    while sum(class_slots_per_course) < case_class_count + 1:
+        available = [index for index, count in enumerate(class_slots_per_course) if count < 5]
+        selected = rng.choice(available)
+        class_slots_per_course[selected] += 1
+
+    # Reserve one class for each request case, plus one class per successful
+    # finalization sample and a separate foreign lecturer's class.
+    class_rows: list[Class] = []
+    slot_index = 0
+    for course, slot_count in zip(course_rows, class_slots_per_course):
+        for section_index in range(slot_count):
+            class_key = f"class-slot:{slot_index}"
+            class_row = Class(
+                id=uid(class_key), course_id=course.id,
+                section=chr(ord("A") + section_index),
+                lecturer_id=foreign_lecturer.id if slot_index == 0 else lecturer.id,
+                academic_year="2026/2027", created_at=config.reference_time,
+            )
+            class_rows.append(class_row)
+            slot_index += 1
+    foreign_class = class_rows[0]
+    available_case_classes = iter(class_rows[1:])
+    case_classes: dict[str, list[Class]] = {}
+    for case_id, *_ in _CASES:
+        count = finalize_classes if case_id == "finalize.complete" else 1
+        case_classes[case_id] = [next(available_case_classes) for _ in range(count)]
+
+    objects.extend([admin, lecturer, foreign_lecturer, *course_rows, *class_rows])
     samples: list[CaseSample] = []
     components_by_class: dict[uuid.UUID, tuple[Component, ...]] = {}
     student_factory = make_factory(Student, config.seed)
-    global_sample = 0
-    for case_id, method, path, status, _mutates, actor, payload in _CASES:
-        sample_count = random.Random(int(hashlib.sha256(f"{config.seed}:{case_id}".encode()).hexdigest(), 16)).randint(config.min_samples, config.max_samples)
-        case_counts[case_id] = sample_count
-        for index in range(sample_count):
-            key = f"sample:{global_sample}"
-            sample_class = Class(id=uid(f"class:{key}"), course_id=course.id, section=f"S{global_sample}", lecturer_id=lecturer.id, academic_year="2026/2027", created_at=config.reference_time)
-            components = [
-                Component(id=uid(f"component:{key}:assignment"), class_id=sample_class.id, name="Tugas", category=ComponentCategory.TUGAS.value, weight=Decimal("30.00"), max_score=Decimal("100.00"), order_index=0, created_at=config.reference_time),
-                Component(id=uid(f"component:{key}:midterm"), class_id=sample_class.id, name="UTS", category=ComponentCategory.UTS.value, weight=Decimal("30.00"), max_score=Decimal("100.00"), order_index=1, created_at=config.reference_time),
-                Component(id=uid(f"component:{key}:final"), class_id=sample_class.id, name="UAS", category=ComponentCategory.UAS.value, weight=Decimal("40.00"), max_score=Decimal("100.00"), order_index=2, created_at=config.reference_time),
-            ]
-            components_by_class[sample_class.id] = tuple(components)
-            objects.extend([sample_class, *components])
-            student = student_factory.build(id=uid(f"student:{key}"), nim=f"{config.dataset.upper()}-{global_sample:05d}", full_name=fake.name(), email=f"student-{global_sample}-{config.dataset}@example.test", created_at=config.reference_time)
-            enrollment = Enrollment(id=uid(f"enrollment:{key}"), class_id=sample_class.id, student_id=student.id, enrolled_at=config.reference_time)
+    sample_records: dict[tuple[str, int], tuple[Class, list[tuple[Student, Enrollment, Grade, uuid.UUID | None]]]] = {}
+    class_case: dict[uuid.UUID, str] = {}
+    for case_id, assigned in case_classes.items():
+        for sample_class in assigned:
+            class_case[sample_class.id] = case_id
+
+    global_student = 0
+    for sample_class in class_rows:
+        case_id = class_case.get(sample_class.id, "")
+        components = [
+            Component(id=uid(f"component:{sample_class.id}:assignment"), class_id=sample_class.id,
+                      name="Tugas", category=ComponentCategory.TUGAS.value, weight=Decimal("30.00"),
+                      max_score=Decimal("100.00"), order_index=0, created_at=config.reference_time),
+            Component(id=uid(f"component:{sample_class.id}:midterm"), class_id=sample_class.id,
+                      name="UTS", category=ComponentCategory.UTS.value, weight=Decimal("30.00"),
+                      max_score=Decimal("100.00"), order_index=1, created_at=config.reference_time),
+            Component(id=uid(f"component:{sample_class.id}:final"), class_id=sample_class.id,
+                      name="UAS", category=ComponentCategory.UAS.value, weight=Decimal("40.00"),
+                      max_score=Decimal("100.00"), order_index=2, created_at=config.reference_time),
+        ]
+        components_by_class[sample_class.id] = tuple(components)
+        objects.extend(components)
+        sample_count = sample_counts.get(case_id, 0)
+        roster_size = rng.randint(max(5, min(sample_count, 15)), 15) if sample_count else rng.randint(5, 15)
+        records: list[tuple[Student, Enrollment, Grade, uuid.UUID | None]] = []
+        for roster_index in range(roster_size):
+            student_key = f"student:{sample_class.id}:{roster_index}"
+            student = student_factory.build(
+                id=uid(student_key), nim=f"{config.dataset.upper()}-{global_student:05d}",
+                full_name=fake.name(), email=f"student-{global_student}-{config.dataset}@example.test",
+                created_at=config.reference_time,
+            )
+            global_student += 1
+            enrollment = Enrollment(id=uid(f"enrollment:{student_key}"), class_id=sample_class.id,
+                                    student_id=student.id, enrolled_at=config.reference_time)
             if case_id in {"grade.fail-boundary", "grade.pass-boundary"}:
-                boundary_score = Decimal("44.99") if case_id == "grade.fail-boundary" else Decimal("45.00")
-                score_values = {components[0].id: boundary_score, components[1].id: boundary_score, components[2].id: boundary_score}
+                boundary = Decimal("44.99") if case_id == "grade.fail-boundary" else Decimal("45.00")
+                score_values = {component.id: boundary for component in components}
             else:
-                score_values = {components[0].id: Decimal(rng.randrange(0, 101)), components[1].id: Decimal(rng.randrange(0, 101)), components[2].id: Decimal(rng.randrange(0, 101))}
+                score_values = {component.id: Decimal(rng.randrange(0, 101)) for component in components}
                 if case_id == "score.zero":
                     score_values[components[0].id] = Decimal("0.00")
                 elif case_id == "score.maximum":
                     score_values[components[0].id] = Decimal("100.00")
             if case_id == "finalize.missing_score":
                 score_values.pop(components[-1].id)
-            objects.append(student)
-            objects.append(enrollment)
-            objects.extend(Score(id=uid(f"score:{key}:{component_id}"), enrollment_id=enrollment.id, component_id=component_id, score=value, entered_by=lecturer.id, entered_at=config.reference_time, updated_at=config.reference_time) for component_id, value in score_values.items())
-            final_score = calculate_final_score(components, score_values)
-            final_cases = {"finalize.repeat", "ranking.read", "history.read", "reports.student.pdf", "reports.class.xlsx", "notifications.retry.sent", "notifications.retry.failed"}
+            objects.extend([student, enrollment])
+            objects.extend(
+                Score(id=uid(f"score:{enrollment.id}:{component_id}"), enrollment_id=enrollment.id,
+                      component_id=component_id, score=value, entered_by=lecturer.id,
+                      entered_at=config.reference_time, updated_at=config.reference_time)
+                for component_id, value in score_values.items()
+            )
+            final_cases = {"finalize.repeat", "ranking.read", "history.read", "reports.student.pdf",
+                           "reports.class.xlsx", "notifications.retry.sent", "notifications.retry.failed"}
             finalized = case_id in final_cases
-            grade_id = uid(f"grade:{key}")
-            objects.append(Grade(id=grade_id, enrollment_id=enrollment.id, final_score=final_score, status=GradeStatus.FINALIZED.value if finalized else GradeStatus.DRAFT.value, finalized_at=config.reference_time if finalized else None, finalized_by=lecturer.id if finalized else None, release_notified_at=config.reference_time if case_id == "notifications.retry.sent" else None))
-            if finalized:
-                objects.append(Ranking(id=uid(f"ranking:{key}"), class_id=sample_class.id, enrollment_id=enrollment.id, rank=1, computed_at=config.reference_time))
+            grade_id = uid(f"grade:{enrollment.id}")
+            grade = Grade(
+                id=grade_id, enrollment_id=enrollment.id,
+                final_score=calculate_final_score(components, score_values),
+                status=GradeStatus.FINALIZED.value if finalized else GradeStatus.DRAFT.value,
+                finalized_at=config.reference_time if finalized else None,
+                finalized_by=lecturer.id if finalized else None,
+                release_notified_at=config.reference_time if case_id == "notifications.retry.sent" else None,
+            )
+            objects.append(grade)
+            notification_id = None
+            if case_id in {"notifications.retry.sent", "notifications.retry.failed"}:
+                notification_id = uid(f"notification:{enrollment.id}")
+                objects.append(Notification(
+                    id=notification_id, grade_id=grade_id, student_email=student.email,
+                    status=NotificationStatus.SENT.value if case_id.endswith("sent") else NotificationStatus.FAILED.value,
+                    sent_at=config.reference_time if case_id.endswith("sent") else None,
+                    error_message=None if case_id.endswith("sent") else "Simulasi kegagalan pengiriman",
+                ))
+            records.append((student, enrollment, grade, notification_id))
+        if case_id in final_cases:
+            ranked = sorted(records, key=lambda record: (-record[2].final_score, record[0].nim))
+            objects.extend(
+                Ranking(id=uid(f"ranking:{record[1].id}"), class_id=sample_class.id,
+                        enrollment_id=record[1].id, rank=rank, computed_at=config.reference_time)
+                for rank, record in enumerate(ranked, start=1)
+            )
+        if case_id:
+            case_samples = sample_counts[case_id]
+            for index in range(case_samples):
+                assigned_class = (case_classes[case_id][index] if case_id == "finalize.complete"
+                                  else sample_class)
+                if assigned_class.id == sample_class.id:
+                    sample_records[(case_id, index)] = (sample_class, records)
+
+    for case_id, method, path, status, _mutates, actor, payload in _CASES:
+        sample_count = sample_counts[case_id]
+        for index in range(sample_count):
+            sample_class, records = sample_records[(case_id, index)]
+            student, enrollment, grade, notification_id = records[index % len(records)]
+            components = components_by_class[sample_class.id]
+            component = components[index % len(components)]
             sample_payload = payload
             if isinstance(payload, dict):
-                sample_payload = {k.replace("${COMPONENT_ID}", str(components[index % len(components)].id)): v for k, v in payload.items()}
+                sample_payload = {key.replace("${COMPONENT_ID}", str(component.id)): value
+                                  for key, value in payload.items()}
                 for key_name, value in list(sample_payload.items()):
                     if value == "${ACTOR_EMAIL}":
                         sample_payload[key_name] = lecturer.email if case_id == "auth.login.good" else f"unknown-{config.dataset}-{index}@example.test"
@@ -205,20 +309,19 @@ def build_plan(config: SeedConfig) -> SeedPlan:
                         sample_payload[key_name] = "<SEED_PASSWORD>"
                     elif value == "${EXISTING_NIM}":
                         sample_payload[key_name] = student.nim
-            sample_path = (path.replace("${CLASS_ID}", str(sample_class.id)).replace("${STUDENT_ID}", str(student.id)).replace("${ENROLLMENT_ID}", str(enrollment.id)).replace("${READY_CLASS_ID}", str(sample_class.id)).replace("${INCOMPLETE_CLASS_ID}", str(sample_class.id)).replace("${FINAL_CLASS_ID}", str(sample_class.id)))
-            sample_path = sample_path.replace("${COMPONENT_ID}", str(components[index % len(components)].id))
-            sample_path = sample_path.replace("${FOREIGN_CLASS_ID}", str(foreign_class.id))
-            notification_id = None
-            if case_id == "notifications.retry.sent":
-                notification = Notification(id=uid(f"notification:{key}"), grade_id=grade_id, student_email=student.email, status=NotificationStatus.SENT.value, sent_at=config.reference_time)
-                objects.append(notification)
-                notification_id = str(notification.id)
-                sample_path = sample_path.replace("${SENT_NOTIFICATION_ID}", str(notification.id))
-            elif case_id == "notifications.retry.failed":
-                notification = Notification(id=uid(f"notification:{key}"), grade_id=grade_id, student_email=student.email, status=NotificationStatus.FAILED.value, error_message="Simulasi kegagalan pengiriman")
-                objects.append(notification)
-                notification_id = str(notification.id)
-                sample_path = sample_path.replace("${FAILED_NOTIFICATION_ID}", str(notification.id))
+            sample_path = (path.replace("${CLASS_ID}", str(sample_class.id))
+                           .replace("${STUDENT_ID}", str(student.id))
+                           .replace("${ENROLLMENT_ID}", str(enrollment.id))
+                           .replace("${READY_CLASS_ID}", str(sample_class.id))
+                           .replace("${INCOMPLETE_CLASS_ID}", str(sample_class.id))
+                           .replace("${FINAL_CLASS_ID}", str(sample_class.id))
+                           .replace("${COMPONENT_ID}", str(component.id))
+                           .replace("${FOREIGN_CLASS_ID}", str(foreign_class.id)))
+            if case_id in {"notifications.retry.sent", "notifications.retry.failed"} and notification_id:
+                sample_path = sample_path.replace(
+                    "${SENT_NOTIFICATION_ID}" if case_id.endswith("sent") else "${FAILED_NOTIFICATION_ID}",
+                    str(notification_id),
+                )
             assertions = {
                 "enrollment.duplicate": ("status", "roster_unchanged"),
                 "student.update.denied": ("status", "student_unchanged"),
@@ -230,14 +333,15 @@ def build_plan(config: SeedConfig) -> SeedPlan:
                 "finalize.missing_score": ("status", "grade_remains_draft"),
                 "finalize.repeat": ("status", "grade_remains_final"),
             }.get(case_id, ("status",))
-            resources = {"class_id": str(sample_class.id), "foreign_class_id": str(foreign_class.id),
+            resources = {"course_id": str(sample_class.course_id),
+                         "class_id": str(sample_class.id), "foreign_class_id": str(foreign_class.id),
                          "student_id": str(student.id), "nim": student.nim,
                          "enrollment_id": str(enrollment.id),
-                         "component_ids": [str(component.id) for component in components]}
+                         "component_ids": [str(item.id) for item in components]}
             if notification_id:
-                resources["notification_id"] = notification_id
-            samples.append(CaseSample(f"{case_id}:{index:03d}", case_id, actor or None, method, sample_path, sample_payload, status, assertions, resources))
-            global_sample += 1
+                resources["notification_id"] = str(notification_id)
+            samples.append(CaseSample(f"{case_id}:{index:03d}", case_id, actor or None, method,
+                                      sample_path, sample_payload, status, assertions, resources))
     counts: dict[str, int] = {}
     for obj in objects:
         counts[obj.__tablename__] = counts.get(obj.__tablename__, 0) + 1

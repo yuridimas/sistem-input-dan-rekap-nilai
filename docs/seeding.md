@@ -12,7 +12,9 @@ python -m app.seeding plan --dataset review-manual --profile manual --seed 20261
 python -m app.seeding plan --dataset review-light --profile light-load --seed 20261105
 ```
 
-Manifest dan checklist JSON disimpan di `.artifacts/seeding/<dataset>/manifest.json`. `manual` membuat 5–15 sample per case (dengan batas 25.000 row), sementara `light-load` membuat 10–30 sample per case (maksimum 100.000 row). Seed, nama dataset, dan versi generator yang sama mereproduksi rencana yang sama.
+Manifest dan checklist JSON disimpan di `.artifacts/seeding/<dataset>/manifest.json`. `manual` membuat 5–15 sample per case (dengan batas 25.000 row), sementara `light-load` membuat 10–30 sample per case (maksimum 100.000 row). Setiap graph memiliki 5–15 mata kuliah, 2–5 kelas per mata kuliah, dan 5–15 mahasiswa terdaftar per kelas. Seed, nama dataset, dan versi generator yang sama mereproduksi rencana yang sama.
+
+Ringkasan `counts` pada manifest mencakup jumlah row per tabel, termasuk `courses`, `classes`, `students`, dan `enrollments`. Setiap sample menunjuk `course_id`, `class_id`, `student_id`, serta enrollment dan komponen yang sesuai. Dalam profile `manual`, sample per case mendapat mahasiswa berbeda pada kelas target agar pengujian mutatif tidak saling mengubah state. Profile `light-load` dapat memakai ulang target roster setelah seluruh 15 mahasiswa kelas terpakai; gunakan profile tersebut untuk trafik berulang ringan.
 
 ## Simpan dan periksa dataset
 

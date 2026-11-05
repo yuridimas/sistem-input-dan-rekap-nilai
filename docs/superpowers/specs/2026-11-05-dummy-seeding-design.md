@@ -1,6 +1,6 @@
 # Desain data dummy untuk pengujian manual dan otomatis
 
-**Status:** Draf untuk ditinjau bersama rencana implementasi; belum mengizinkan implementasi.
+**Status:** Disetujui dan diimplementasikan melalui plan multi-mata-kuliah.
 **Tanggal:** 2026-11-05.
 **Pilihan yang disetujui pengguna:** Polyfactory + Faker, variasi beberapa contoh untuk setiap kasus positif/negatif, jumlah acak berbatas, dan dataset untuk load test ringan.
 **Batas utama dari pengguna:** Dataset seeder dipakai human untuk testing manual dan tidak boleh dihapus oleh pytest atau pengujian otomatis lain. Pytest boleh diperkaya.

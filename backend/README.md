@@ -119,6 +119,8 @@ python -m pytest
 
 Guard `tests/conftest.py` requires the three `TEST_*` variables above and redirects application connections to them before loading runtime modules. For local host runs, use the same variables with a disposable PostgreSQL database whose name ends in `_test`; never point them at the manual development database.
 
+Panduan untuk membuat dan memeriksa dataset manual append-only, termasuk variasi kasus dan pemetaan multi-mata-kuliah, ada di [panduan seeder](../docs/seeding.md). Jangan arahkan pytest ke database yang digunakan human untuk pengujian manual.
+
 Untuk membatasi skenario, jalankan `python -m pytest tests/test_scores.py -q` di shell container yang sama. Keluar dengan `exit`, lalu bersihkan resource test dari **root repository menggunakan PowerShell**:
 
 ```powershell
