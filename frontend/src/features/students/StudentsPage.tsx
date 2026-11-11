@@ -43,7 +43,7 @@ export function StudentsPage() {
       accessorFn: (student) => `${student.full_name} ${student.nim}`,
       header: "Mahasiswa",
       cell: ({ row }) => (
-        <div className="max-w-72 whitespace-normal">
+        <div className="min-w-0 whitespace-normal text-wrap break-words">
           <Link className="font-medium underline-offset-4 hover:underline" to={`/students/${row.original.id}`}>
             {row.original.full_name}
           </Link>
@@ -53,18 +53,18 @@ export function StudentsPage() {
     },
     {
       accessorKey: "email",
-      size: 35,
+      size: 42,
       header: "Email",
-      cell: ({ row }) => <span className="max-w-64 break-all whitespace-normal">{row.original.email || "—"}</span>,
+      cell: ({ row }) => <span className="block min-w-0 whitespace-normal text-wrap break-all">{row.original.email || "—"}</span>,
     },
     ...(user?.role === "superadmin" ? [{
       id: "actions",
-      size: 25,
+      size: 18,
       header: "Tindakan",
       enableSorting: false,
       cell: ({ row }: { row: { original: Student } }) => (
         <div className="flex justify-end gap-2">
-          <Button aria-label={`Edit ${row.original.full_name}`} onClick={() => setDialog({ student: row.original })} size="icon" variant="outline"><Pencil aria-hidden="true" className="size-4" /></Button>
+          <Button aria-label={`Edit ${row.original.full_name}`} className="border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-900/60" onClick={() => setDialog({ student: row.original })} size="icon" variant="outline"><Pencil aria-hidden="true" className="size-4" /></Button>
           <Button aria-label={`Hapus ${row.original.full_name}`} onClick={() => setDialog({ student: row.original, deleting: true })} size="icon" variant="destructive"><Trash2 aria-hidden="true" className="size-4" /></Button>
         </div>
       ),
@@ -88,7 +88,7 @@ export function StudentsPage() {
           data={rows}
           emptyMessage={query.isPending ? "Memuat data" : search ? "Tidak ada mahasiswa yang cocok dengan pencarian." : "Belum ada mahasiswa"}
           getRowId={(student) => student.id}
-          search={<label className="grid w-full gap-1.5 text-sm sm:w-64" htmlFor="student-search">Cari mahasiswa<Input id="student-search" onChange={(event) => setSearch(event.target.value)} placeholder="NIM atau nama lengkap" type="search" value={search} /></label>}
+          search={<label className="flex w-full items-center gap-2 whitespace-nowrap text-sm sm:w-auto" htmlFor="student-search">Cari<Input className="w-48 sm:w-64" id="student-search" onChange={(event) => setSearch(event.target.value)} placeholder="NIM atau nama lengkap" type="search" value={search} /></label>}
         />
       {dialog && <StudentDialog {...dialog} close={() => setDialog(null)} />}
     </section>
