@@ -88,7 +88,7 @@ export function StudentsPage() {
           data={rows}
           emptyMessage={query.isPending ? "Memuat data" : search ? "Tidak ada mahasiswa yang cocok dengan pencarian." : "Belum ada mahasiswa"}
           getRowId={(student) => student.id}
-          search={<label className="flex w-full items-center gap-2 whitespace-nowrap text-sm sm:w-auto" htmlFor="student-search">Cari<Input className="w-48 sm:w-64" id="student-search" onChange={(event) => setSearch(event.target.value)} placeholder="NIM atau nama lengkap" type="search" value={search} /></label>}
+          search={<label className="flex items-center gap-2 whitespace-nowrap text-sm" htmlFor="student-search">Cari<Input className="w-48 sm:w-64" id="student-search" onChange={(event) => setSearch(event.target.value)} placeholder="NIM atau nama lengkap" type="search" value={search} /></label>}
         />
       {dialog && <StudentDialog {...dialog} close={() => setDialog(null)} />}
     </section>

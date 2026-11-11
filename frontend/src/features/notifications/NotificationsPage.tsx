@@ -170,7 +170,7 @@ export function NotificationsPage() {
           data={visibleRecords}
           emptyMessage={query.isPending ? "Memuat data" : normalizedSearch ? "Tidak ada notifikasi yang cocok dengan pencarian." : "Tidak ada notifikasi untuk status ini."}
           getRowId={(row) => row.id}
-          search={<label className="flex w-full items-center gap-2 whitespace-nowrap text-sm sm:w-auto" htmlFor="notification-search">Cari<Input className="w-48 sm:w-64" id="notification-search" onChange={(event) => setSearch(event.target.value)} placeholder="Email, status, atau detail kegagalan" type="search" value={search} /></label>}
+          search={<label className="flex items-center gap-2 whitespace-nowrap text-sm" htmlFor="notification-search">Cari<Input className="w-48 sm:w-64" id="notification-search" onChange={(event) => setSearch(event.target.value)} placeholder="Email, status, atau detail kegagalan" type="search" value={search} /></label>}
         />
       {retry.error && (
         <Alert className="mt-4" variant="destructive">

@@ -92,7 +92,7 @@ export function CoursesPage() {
           data={rows}
           emptyMessage={query.isPending ? "Memuat data" : search ? "Tidak ada mata kuliah yang cocok dengan pencarian." : "Belum ada mata kuliah"}
           getRowId={(course) => course.id}
-          search={<label className="flex w-full items-center gap-2 whitespace-nowrap text-sm sm:w-auto" htmlFor="course-search">Cari<Input className="w-48 sm:w-64" id="course-search" onChange={(event) => setSearch(event.target.value)} placeholder="Kode atau nama mata kuliah" type="search" value={search} /></label>}
+          search={<label className="flex items-center gap-2 whitespace-nowrap text-sm" htmlFor="course-search">Cari<Input className="w-48 sm:w-64" id="course-search" onChange={(event) => setSearch(event.target.value)} placeholder="Kode atau nama mata kuliah" type="search" value={search} /></label>}
         />
       {dialog && <CourseDialog {...dialog} close={() => setDialog(null)} />}
     </section>
