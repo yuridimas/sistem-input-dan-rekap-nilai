@@ -1,6 +1,6 @@
 /** Daftar akun administratif yang dapat ditinjau superadmin. */
 import { useMemo, useState } from "react";
-import { Pencil, Plus, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
+import { Filter, Pencil, Plus, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -39,7 +39,7 @@ export function UsersPage() {
   const [dialog, setDialog] = useState<{ user?: UserRecord; deleting?: boolean } | null>(null);
   const columns = useMemo<ColumnDef<UserRecord>[]>(() => [
     { accessorKey: "full_name", size: 20, header: "Nama", cell: ({ row }) => <span className="font-medium">{row.original.full_name}</span> },
-    { accessorKey: "email", size: 26, header: "Email", cell: ({ row }) => <span className="break-all">{row.original.email}</span> },
+    { accessorKey: "email", size: 26, header: "Email", cell: ({ row }) => <span className="block min-w-0 whitespace-normal text-wrap break-all">{row.original.email}</span> },
     { accessorKey: "role", size: 13, header: "Peran", cell: ({ row }) => roleLabels[row.original.role] },
     { accessorKey: "is_active", size: 13, header: "Status", cell: ({ row }) => (
       <Badge variant={row.original.is_active ? "secondary" : "outline"}>
@@ -51,7 +51,7 @@ export function UsersPage() {
     ) },
     { id: "actions", size: 10, header: "Tindakan", enableSorting: false, cell: ({ row }) => (
       <div className="flex justify-end gap-2">
-        <Button aria-label={`Edit ${row.original.full_name}`} onClick={() => setDialog({ user: row.original })} size="icon" variant="outline">
+        <Button aria-label={`Edit ${row.original.full_name}`} className="border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-900/60" onClick={() => setDialog({ user: row.original })} size="icon" variant="outline">
           <Pencil aria-hidden="true" className="size-4" />
         </Button>
         {row.original.is_active && (
@@ -135,7 +135,10 @@ export function UsersPage() {
               <RotateCcw aria-hidden="true" className="size-4" />
               Reset
             </Button>
-            <Button type="submit">Terapkan</Button>
+            <Button type="submit">
+              <Filter aria-hidden="true" className="size-4" />
+              Terapkan
+            </Button>
           </div>
         </div>
       </form>
@@ -145,7 +148,7 @@ export function UsersPage() {
           data={visibleUsers}
           emptyMessage={query.isPending ? "Memuat data" : users.length ? "Tidak ada pengguna yang cocok dengan pencarian." : "Belum ada pengguna"}
           getRowId={(record) => record.id}
-          search={<label className="grid w-full gap-1.5 text-sm sm:w-64" htmlFor="users-search">Cari pengguna<Input autoComplete="off" id="users-search" onChange={(event) => setSearch(event.target.value)} placeholder="Nama atau email" type="search" value={search} /></label>}
+          search={<label className="flex w-full items-center gap-2 whitespace-nowrap text-sm sm:w-auto" htmlFor="users-search">Cari<Input autoComplete="off" className="w-48 sm:w-64" id="users-search" onChange={(event) => setSearch(event.target.value)} placeholder="Nama atau email" type="search" value={search} /></label>}
         />
       {dialog && <UserDialog {...dialog} close={() => setUserDialog(null)} />}
     </section>

@@ -46,6 +46,10 @@ describe("users page", () => {
     expect(screen.getByRole("row", { name: /Ani Putri ani@example.test Dosen Aktif/ })).toBeInTheDocument();
     expect(screen.getByRole("row", { name: /Admin Seed admin@example.test Superadmin Nonaktif/ })).toBeInTheDocument();
     expect(screen.queryByText(/password/i)).not.toBeInTheDocument();
+    const search = screen.getByRole("searchbox", { name: "Cari" });
+    expect(search.parentElement).toHaveClass("flex", "items-center");
+    expect(screen.getByText("ani@example.test").closest("span")).toHaveClass("whitespace-normal", "text-wrap");
+    expect(screen.getByRole("button", { name: "Edit Ani Putri" })).toHaveClass("bg-blue-50");
 
     const roleFilter = screen.getByRole("combobox", { name: "Peran" });
     const activeFilter = screen.getByRole("combobox", { name: "Status" });
@@ -60,7 +64,7 @@ describe("users page", () => {
     await userEvent.click(screen.getByRole("button", { name: "Reset" }));
     await waitFor(() => expect(api.get).toHaveBeenLastCalledWith("/admin/users", { params: undefined }));
 
-    await userEvent.type(screen.getByLabelText("Cari pengguna"), "ANI@");
+    await userEvent.type(screen.getByLabelText("Cari"), "ANI@");
     expect(screen.getByText("ani@example.test")).toBeInTheDocument();
     expect(screen.queryByText("admin@example.test")).not.toBeInTheDocument();
   });
