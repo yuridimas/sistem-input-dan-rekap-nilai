@@ -36,11 +36,11 @@ export function CoursesPage() {
   const columns = useMemo<ColumnDef<Course>[]>(() => [
     {
       id: "course",
-      size: 45,
+      size: 58,
       accessorFn: (course) => `${course.name} ${course.code}`,
       header: "Mata kuliah",
       cell: ({ row }) => (
-        <div className="max-w-72 whitespace-normal">
+        <div className="min-w-0 whitespace-normal text-wrap break-words">
           <Link className="font-medium underline-offset-4 hover:underline" to={`/courses/${row.original.id}`}>
             {row.original.name}
           </Link>
@@ -50,21 +50,21 @@ export function CoursesPage() {
     },
     {
       id: "semester",
-      size: 25,
+      size: 24,
       accessorFn: (course) => `${course.semester} ${course.credits}`,
       header: "Semester / SKS",
       cell: ({ row }) => `${row.original.semester} · ${row.original.credits} SKS`,
     },
     {
       id: "actions",
-      size: 30,
+      size: 18,
       header: "Tindakan",
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
           {(user?.role === "superadmin" || row.original.created_by === user?.id) && (
             <>
-              <Button aria-label={`Edit ${row.original.name}`} onClick={() => setDialog({ course: row.original })} size="icon" variant="outline"><Pencil aria-hidden="true" className="size-4" /></Button>
+              <Button aria-label={`Edit ${row.original.name}`} className="border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-900/60" onClick={() => setDialog({ course: row.original })} size="icon" variant="outline"><Pencil aria-hidden="true" className="size-4" /></Button>
               <Button aria-label={`Hapus ${row.original.name}`} onClick={() => setDialog({ course: row.original, deleting: true })} size="icon" variant="destructive"><Trash2 aria-hidden="true" className="size-4" /></Button>
             </>
           )}
@@ -92,7 +92,7 @@ export function CoursesPage() {
           data={rows}
           emptyMessage={query.isPending ? "Memuat data" : search ? "Tidak ada mata kuliah yang cocok dengan pencarian." : "Belum ada mata kuliah"}
           getRowId={(course) => course.id}
-          search={<label className="grid w-full gap-1.5 text-sm sm:w-64" htmlFor="course-search">Cari mata kuliah<Input id="course-search" onChange={(event) => setSearch(event.target.value)} placeholder="Kode atau nama mata kuliah" type="search" value={search} /></label>}
+          search={<label className="flex w-full items-center gap-2 whitespace-nowrap text-sm sm:w-auto" htmlFor="course-search">Cari<Input className="w-48 sm:w-64" id="course-search" onChange={(event) => setSearch(event.target.value)} placeholder="Kode atau nama mata kuliah" type="search" value={search} /></label>}
         />
       {dialog && <CourseDialog {...dialog} close={() => setDialog(null)} />}
     </section>
