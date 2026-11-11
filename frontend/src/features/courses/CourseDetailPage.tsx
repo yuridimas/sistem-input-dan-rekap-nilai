@@ -6,9 +6,8 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PageHeader, QueryState, NoData } from "@/features/academic/Management";
+import { PageHeader, QueryState } from "@/features/academic/Management";
 import {
   useAcademicQuery,
   type Course,
@@ -17,6 +16,7 @@ import {
 import { useAuth } from "@/features/auth/useAuth";
 import { ClassDialog } from "@/features/classes/ClassDialog";
 import { CourseDialog } from "./CourseDialog";
+import { CourseClassesTable } from "./CourseClassesTable";
 
 /**
  * Muat metadata terlebih dahulu lalu kelompokkan daftar kelas pada mata kuliah tujuan.
@@ -64,62 +64,15 @@ export function CourseDetailPage() {
         </div>
       </PageHeader>
       <h2 className="mb-4 text-base font-semibold">Daftar kelas</h2>
-      {classes.isPending || classes.error ? (
-        <QueryState query={classes} />
-      ) : rows.length === 0 ? (
-        <NoData description="Belum ada kelas yang dapat Anda kelola untuk mata kuliah ini." />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {rows.map((row) => (
-            <article
-              className="flex min-w-0 flex-col gap-4 rounded-xl border bg-background p-5"
-              key={row.id}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-semibold">
-                    <Link
-                      className="underline-offset-4 hover:underline"
-                      to={`/classes/${row.id}`}
-                    >
-                      Kelas {row.section}
-                    </Link>
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {row.academic_year}
-                  </p>
-                </div>
-                {row.has_finalized_grades && (
-                  <Badge variant="secondary">Roster terkunci</Badge>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button render={<Link to={`/classes/${row.id}`} />} size="sm">
-                  Buka kelas
-                </Button>
-                <Button
-                  aria-label={`Edit kelas ${row.section}`}
-                  onClick={() => setClassDialog({ class_: row })}
-                  size="sm"
-                  variant="outline"
-                >
-                  Edit
-                </Button>
-                <Button
-                  aria-label={`Hapus kelas ${row.section}`}
-                  onClick={() =>
-                    setClassDialog({ class_: row, deleting: true })
-                  }
-                  size="sm"
-                  variant="destructive"
-                >
-                  Hapus
-                </Button>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
+      <CourseClassesTable
+        rows={rows}
+        isPending={classes.isPending}
+        isFetching={classes.isFetching}
+        error={classes.error}
+        onRefresh={() => classes.refetch()}
+        onEdit={(class_) => setClassDialog({ class_ })}
+        onDelete={(class_) => setClassDialog({ class_, deleting: true })}
+      />
       {classDialog && (
         <ClassDialog
           {...classDialog}
