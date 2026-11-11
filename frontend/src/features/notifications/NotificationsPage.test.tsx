@@ -69,10 +69,14 @@ describe("notifications page", () => {
     expect(screen.getByRole("columnheader", { name: "Dibuat" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Terkirim" })).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByRole("combobox", { name: "Status" }), "sent");
-    expect(screen.getByText("lain@example.com")).toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("mahasiswa@example.com")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Terapkan" }));
+    expect(await screen.findByText("lain@example.com")).toBeInTheDocument();
     expect(screen.queryByText("mahasiswa@example.com")).not.toBeInTheDocument();
     await userEvent.selectOptions(screen.getByRole("combobox", { name: "Status" }), "all");
-    await userEvent.click(screen.getByRole("button", { name: "Kirim ulang ke mahasiswa@example.com" }));
+    await userEvent.click(screen.getByRole("button", { name: "Terapkan" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Kirim ulang ke mahasiswa@example.com" }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/notifications/failed-1/retry"));
     await waitFor(() => {
@@ -80,12 +84,17 @@ describe("notifications page", () => {
       expect(email.closest("tr")).toHaveTextContent("Antrean");
     });
     expect(screen.getByRole("combobox", { name: "Status" })).toHaveValue("queued");
+    await userEvent.click(screen.getByRole("button", { name: "Reset" }));
+    expect(screen.getByRole("combobox", { name: "Status" })).toHaveValue("failed");
+    await waitFor(() => expect(api.get).toHaveBeenLastCalledWith("/admin/notifications", { params: { status: "failed" } }));
   });
 
   it("sorts the notification list by student email", async () => {
     mockNotificationList();
     mount();
     await userEvent.selectOptions(screen.getByRole("combobox", { name: "Status" }), "all");
+    await userEvent.click(screen.getByRole("button", { name: "Terapkan" }));
+    await screen.findByText("lain@example.com");
 
     await userEvent.click(await screen.findByRole("button", { name: "Email mahasiswa" }));
     const rows = screen.getAllByRole("row").slice(1);
@@ -107,5 +116,55 @@ describe("notifications page", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Kirim ulang ke mahasiswa@example.com" }));
     expect(await screen.findByText(/Gagal mengirim ulang/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Kirim ulang ke mahasiswa@example.com" })).toBeEnabled();
+  });
+
+  it("searches notification email, status, and error text locally", async () => {
+    mockNotificationList();
+    mount();
+    await screen.findByText("SMTP tidak tersedia");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Status" }), "all");
+    await userEvent.click(screen.getByRole("button", { name: "Terapkan" }));
+    await screen.findByText("lain@example.com");
+    const calls = vi.mocked(api.get).mock.calls.length;
+    const search = screen.getByRole("searchbox", { name: "Cari" });
+    for (const term of ["mahasiswa@", "SMTP", "failed"]) {
+      await userEvent.clear(search);
+      await userEvent.type(search, term);
+      expect(screen.getByText("mahasiswa@example.com")).toBeInTheDocument();
+      expect(screen.queryByText("lain@example.com")).not.toBeInTheDocument();
+    }
+    await userEvent.clear(search);
+    await userEvent.type(search, "Terkirim");
+    expect(screen.getByText("lain@example.com")).toBeInTheDocument();
+    expect(screen.queryByText("mahasiswa@example.com")).not.toBeInTheDocument();
+    await userEvent.type(search, " tidak cocok");
+    expect(screen.getByRole("status")).toHaveTextContent("Tidak ada notifikasi yang cocok dengan pencarian.");
+    expect(api.get).toHaveBeenCalledTimes(calls);
+  });
+
+  it("refreshes notifications from the table toolbar", async () => {
+    mockNotificationList();
+    mount();
+    await screen.findByText("SMTP tidak tersedia");
+    await userEvent.click(screen.getByRole("button", { name: "Segarkan" }));
+    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+  });
+
+  it("renders a missing email and long error detail", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: [{ ...notifications[0], student_email: null, error_message: "Detail sangat panjang ".repeat(15) }] });
+    mount();
+    expect(await screen.findByText("Email tidak tersedia")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Kirim ulang ke mahasiswa" })).toBeInTheDocument();
+  });
+
+  it.each(["empty", "pending", "error"])("keeps filters and table controls available for %s data", async (state) => {
+    if (state === "empty") vi.mocked(api.get).mockResolvedValue({ data: [] });
+    if (state === "pending") vi.mocked(api.get).mockImplementation(() => new Promise(() => {}));
+    if (state === "error") vi.mocked(api.get).mockRejectedValue(new Error("offline"));
+    mount();
+    if (state === "error") await screen.findByRole("alert");
+    expect(screen.getByRole("form", { name: "Filter notifikasi" })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "Cari" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Segarkan" })).toBeInTheDocument();
   });
 });
