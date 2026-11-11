@@ -1,4 +1,4 @@
-import type { UserRole } from "./UsersPage";
+import type { UserRole } from "./types";
 
 interface UserSummaryRecord {
   role: UserRole;

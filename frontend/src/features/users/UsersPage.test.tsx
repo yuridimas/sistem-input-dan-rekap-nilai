@@ -8,7 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import api from "@/lib/api";
 import { UsersPage } from "./UsersPage";
 
-vi.mock("@/lib/api", () => ({ default: { get: vi.fn() } }));
+vi.mock("@/lib/api", () => ({ default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }));
 const auth = vi.hoisted(() => ({ user: { id: "admin-1", role: "superadmin" as "superadmin" | "lecturer" } }));
 vi.mock("@/features/auth/useAuth", () => ({
   useAuth: () => ({ ...auth, hasTokens: true, isLoading: false, error: null, retry: vi.fn() }),
@@ -32,6 +32,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   auth.user = { id: "admin-1", role: "superadmin" };
   vi.mocked(api.get).mockResolvedValue({ data: users });
+  vi.mocked(api.post).mockResolvedValue({ data: users[0] });
+  vi.mocked(api.patch).mockResolvedValue({ data: users[0] });
+  vi.mocked(api.delete).mockResolvedValue({ data: undefined });
 });
 
 describe("users page", () => {
@@ -48,9 +51,14 @@ describe("users page", () => {
     const activeFilter = screen.getByRole("combobox", { name: "Status" });
     await userEvent.selectOptions(roleFilter, "lecturer");
     await userEvent.selectOptions(activeFilter, "true");
+    expect(api.get).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole("button", { name: "Terapkan" }));
     await waitFor(() => expect(api.get).toHaveBeenLastCalledWith("/admin/users", {
       params: { role: "lecturer", is_active: true },
     }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Reset" }));
+    await waitFor(() => expect(api.get).toHaveBeenLastCalledWith("/admin/users", { params: undefined }));
 
     await userEvent.type(screen.getByLabelText("Cari pengguna"), "ANI@");
     expect(screen.getByText("ani@example.test")).toBeInTheDocument();
@@ -91,6 +99,24 @@ describe("users page", () => {
     await userEvent.click(screen.getByRole("button", { name: "Halaman berikutnya" }));
     expect(screen.getByRole("row", { name: /Akun 11/ })).toBeInTheDocument();
     expect(screen.queryByRole("row", { name: /Akun 01/ })).not.toBeInTheDocument();
+  });
+
+  it("creates an account from the header action", async () => {
+    mount();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Tambah pengguna" }));
+    await userEvent.type(screen.getByLabelText("Nama lengkap"), "Dewi Lestari");
+    await userEvent.type(screen.getByLabelText("Email akun"), "dewi@example.test");
+    await userEvent.type(screen.getByLabelText("Kata sandi"), "secret123");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Peran" }), "lecturer");
+    await userEvent.click(screen.getByRole("button", { name: "Simpan pengguna" }));
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith("/admin/users", {
+      email: "dewi@example.test",
+      full_name: "Dewi Lestari",
+      password: "secret123",
+      role: "lecturer",
+    }));
   });
 
   it("redirects lecturers away from the superadmin-only route", async () => {
