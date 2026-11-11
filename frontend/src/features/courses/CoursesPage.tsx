@@ -4,7 +4,7 @@
  */
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
@@ -36,14 +36,14 @@ export function CoursesPage() {
   const columns = useMemo<ColumnDef<Course>[]>(() => [
     {
       id: "course",
-      size: 58,
+      size: 54,
       accessorFn: (course) => `${course.name} ${course.code}`,
       header: "Mata kuliah",
       cell: ({ row }) => (
         <div className="min-w-0 whitespace-normal text-wrap break-words">
-          <Link className="font-medium underline-offset-4 hover:underline" to={`/courses/${row.original.id}`}>
+          <span className="font-medium">
             {row.original.name}
-          </Link>
+          </span>
           <p className="mt-1 text-xs text-muted-foreground">{row.original.code}</p>
         </div>
       ),
@@ -57,11 +57,14 @@ export function CoursesPage() {
     },
     {
       id: "actions",
-      size: 18,
+      size: 22,
       header: "Tindakan",
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
+          <Button aria-label={`Lihat mata kuliah ${row.original.name}`} render={<Link to={`/courses/${row.original.id}`} />} size="icon" variant="outline">
+            <Eye aria-hidden="true" className="size-4" />
+          </Button>
           {(user?.role === "superadmin" || row.original.created_by === user?.id) && (
             <>
               <Button aria-label={`Edit ${row.original.name}`} className="border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-900/60" onClick={() => setDialog({ course: row.original })} size="icon" variant="outline"><Pencil aria-hidden="true" className="size-4" /></Button>
