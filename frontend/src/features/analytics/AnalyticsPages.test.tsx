@@ -102,7 +102,7 @@ describe("class analytics panel", () => {
     await userEvent.click(screen.getByRole("tab", { name: "Nilai" }));
     expect(await screen.findByLabelText("001 Satu — UTS")).toHaveValue("101");
 
-    await userEvent.click(screen.getByRole("link", { name: "Mata kuliah" }));
+    await userEvent.click(screen.getByRole("link", { name: "Mata Kuliah Saya" }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("Perubahan nilai belum selesai");
     expect(screen.queryByText("Daftar mata kuliah")).not.toBeInTheDocument();
   });

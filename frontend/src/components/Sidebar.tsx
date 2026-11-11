@@ -4,19 +4,21 @@
  */
 import { BookOpen, GraduationCap, LayoutDashboard, Users, X } from "lucide-react";
 import { useRef, type KeyboardEvent } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import type { AuthUser } from "@/stores/authStore";
 import { SessionProfile } from "@/components/SessionProfile";
+import { getCourseMenuLabel, isSidebarItemActive } from "@/lib/navigation";
 
 /**
  * Render navigasi desktop/mobile; onClose mengembalikan kendali fokus kepada Layout.
  */
 export function Sidebar({ user, open, onClose, onLogout }: { user: AuthUser; open: boolean; onClose: () => void; onLogout: () => void }) {
   const sidebarRef = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
   const items = [
     { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-    { label: user.role === "superadmin" ? "Semua Mata Kuliah" : "Mata Kuliah Saya", to: "/courses", icon: BookOpen },
+    { label: getCourseMenuLabel(user.role), to: "/courses", icon: BookOpen },
     { label: "Mahasiswa", to: "/students", icon: GraduationCap },
     ...(user.role === "superadmin" ? [{ label: "Pengguna", to: "/users", icon: Users }] : []),
   ];
@@ -60,17 +62,18 @@ export function Sidebar({ user, open, onClose, onLogout }: { user: AuthUser; ope
 
         <div className="mt-10 px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Menu utama</div>
         <nav aria-label="Navigasi utama" className="mt-3 flex flex-col gap-1">
-          {items.map(({ label, to, icon: Icon }) => (
-            <NavLink
-              className={({ isActive }) => `flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-ring ${isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-              end={to === "/dashboard"}
+          {items.map(({ label, to, icon: Icon }) => {
+            const isActive = isSidebarItemActive(to, pathname);
+            return <Link
+              aria-current={isActive ? "page" : undefined}
+              className={`flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-ring ${isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
               key={to}
               onClick={onClose}
               to={to}
             >
               <Icon className="size-4" aria-hidden="true" />{label}
-            </NavLink>
-          ))}
+            </Link>;
+          })}
         </nav>
 
         <SessionProfile onLogout={onLogout} user={user} />

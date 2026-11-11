@@ -16,15 +16,20 @@ vi.mock("@/stores/authStore", () => ({
   useAuthStore: (selector: (value: { clear: () => void }) => unknown) => selector({ clear: state.clear }),
 }));
 
-function mount() {
+function mount(entry = "/dashboard") {
   const client = new QueryClient();
   const router = createMemoryRouter([
     { element: <Layout />, children: [
       { path: "/dashboard", element: <p>Dashboard content</p> },
       { path: "/notifications", element: <p>Notifications content</p> },
+      { path: "/courses", element: <p>Courses content</p> },
+      { path: "/courses/:courseId", element: <p>Course detail content</p> },
+      { path: "/classes/:classId", element: <p>Class detail content</p> },
+      { path: "/students", element: <p>Students content</p> },
+      { path: "/students/:studentId", element: <p>Student detail content</p> },
     ] },
     { path: "/login", element: <p>Login page</p> },
-  ], { initialEntries: ["/dashboard"] });
+  ], { initialEntries: [entry] });
   render(<QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider>);
 }
 
@@ -34,6 +39,23 @@ beforeEach(() => {
 });
 
 describe("authenticated layout profile and notifications", () => {
+  it.each(["/courses", "/courses/c1", "/classes/k1?tab=grades", "/classes/k1?tab=analytics"])("keeps the course menu active and clickable at %s", async (path) => {
+    mount(path);
+    const nav = screen.getByRole("navigation", { name: "Navigasi utama" });
+    const link = within(nav).getByRole("link", { name: "Semua Mata Kuliah" });
+    expect(link).toHaveAttribute("aria-current", "page");
+    expect(link).toHaveAttribute("href", "/courses");
+    expect(nav.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+    await userEvent.click(link);
+    expect(await screen.findByText("Courses content")).toBeInTheDocument();
+  });
+  it("uses the lecturer's label and switches active context at student details", () => {
+    state.user.role = "lecturer";
+    mount("/students/s1");
+    const nav = screen.getByRole("navigation", { name: "Navigasi utama" });
+    expect(within(nav).getByRole("link", { name: "Mahasiswa" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("link", { name: "Mata Kuliah Saya" })).not.toHaveAttribute("aria-current");
+  });
   it("keeps profile and logout in the sidebar and places notifications in the header", async () => {
     mount();
 

@@ -4,7 +4,6 @@
  */
 import { lazy, Suspense, useState } from "react";
 import {
-  Link,
   useNavigate,
   useParams,
   useSearchParams,
@@ -22,6 +21,9 @@ import {
 import { ComponentEditor } from "@/features/components/ComponentEditor";
 import { ClassDialog } from "./ClassDialog";
 import { Roster } from "./Roster";
+import { PageBreadcrumbs } from "@/components/PageBreadcrumbs";
+import { getCourseMenuLabel } from "@/lib/navigation";
+import { useAuth } from "@/features/auth/useAuth";
 import { GradeEntryGrid } from "@/features/grades/GradeEntryGrid";
 import { GradeNavigationGuard } from "@/features/grades/GradeNavigationGuard";
 import { useGradeEntry } from "@/features/grades/hooks";
@@ -45,6 +47,7 @@ export function ClassDetailPage() {
  * Muat konteks kelas/mata kuliah sebelum konten; guard tetap memantau pekerjaan penilaian.
  */
 function ClassDetailContent() {
+  const { user } = useAuth();
   const { classId } = useParams();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -77,23 +80,11 @@ function ClassDetailContent() {
         <QueryState query={statusQuery} />
       ) : (
         <section className="mx-auto max-w-5xl">
-          <nav
-            aria-label="Breadcrumb"
-            className="mb-5 flex flex-wrap gap-2 text-sm"
-          >
-            <Link className="underline underline-offset-4" to="/courses">
-              Mata kuliah
-            </Link>
-            <span aria-hidden="true">/</span>
-            <Link
-              className="underline underline-offset-4"
-              to={`/courses/${data.course_id}`}
-            >
-              {course.data?.code}
-            </Link>
-            <span aria-hidden="true">/</span>
-            <span>Kelas {data.section}</span>
-          </nav>
+          <PageBreadcrumbs items={[
+            { label: getCourseMenuLabel(user?.role ?? "lecturer"), to: "/courses" },
+            { label: course.data!.name, to: `/courses/${data.course_id}` },
+            { label: `Kelas ${data.section} (${data.academic_year})` },
+          ]} />
           <PageHeader
             description={`${course.data?.name} · ${data.academic_year}`}
             title={`Kelas ${data.section}`}

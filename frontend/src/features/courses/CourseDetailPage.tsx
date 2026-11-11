@@ -3,7 +3,7 @@
  * Hak edit mata kuliah dibedakan dari hak baca dosen yang memiliki penugasan kelas.
  */
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ import { useAuth } from "@/features/auth/useAuth";
 import { ClassDialog } from "@/features/classes/ClassDialog";
 import { CourseDialog } from "./CourseDialog";
 import { CourseClassesTable } from "./CourseClassesTable";
+import { PageBreadcrumbs } from "@/components/PageBreadcrumbs";
+import { getCourseMenuLabel } from "@/lib/navigation";
 
 /**
  * Muat metadata terlebih dahulu lalu kelompokkan daftar kelas pada mata kuliah tujuan.
@@ -40,13 +42,10 @@ export function CourseDetailPage() {
   const rows = classes.data?.filter((row) => row.course_id === data.id) ?? [];
   return (
     <section className="mx-auto max-w-5xl">
-      <nav aria-label="Breadcrumb" className="mb-5 text-sm">
-        <Link className="underline underline-offset-4" to="/courses">
-          Mata kuliah
-        </Link>
-        <span aria-hidden="true"> / </span>
-        <span>{data.code}</span>
-      </nav>
+      <PageBreadcrumbs items={[
+        { label: getCourseMenuLabel(user?.role ?? "lecturer"), to: "/courses" },
+        { label: data.name },
+      ]} />
       <PageHeader
         description={`${data.code} · ${data.credits} SKS · Semester ${data.semester}`}
         title={data.name}
