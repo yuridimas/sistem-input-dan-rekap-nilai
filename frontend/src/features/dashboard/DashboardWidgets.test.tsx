@@ -35,6 +35,7 @@ describe("dashboard summary widgets", () => {
       student_count: 25,
       status: "released",
       released_at: "2026-10-25T08:00:00Z",
+      updated_at: "2026-10-25T08:00:00Z",
     };
     render(<RecentReleases onSelect={onSelect} releases={[release]} />);
 

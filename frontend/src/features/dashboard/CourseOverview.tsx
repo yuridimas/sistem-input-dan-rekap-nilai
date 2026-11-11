@@ -34,7 +34,7 @@ export function CourseOverview({ course, expanded, onToggle }: {
             <span className="block break-words text-xs font-medium text-muted-foreground">{course.code} · Semester {course.semester}</span>
             <span className="mt-1 block break-words text-sm font-semibold">{course.name}</span>
           </span>
-          <span className="shrink-0 text-xs text-muted-foreground">{course.classes.length} kelas</span>
+          <span className="shrink-0 text-xs text-muted-foreground">{course.classes.length < course.class_count ? `5 kelas terbaru dari ${course.class_count}` : `${course.class_count} kelas`}</span>
           <ChevronDown aria-hidden="true" className={`size-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
         </button>
       </h3>

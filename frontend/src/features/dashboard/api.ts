@@ -16,6 +16,7 @@ export interface DashboardClass {
   student_count: number;
   status: "pending" | "released";
   released_at: string | null;
+  updated_at: string;
 }
 
 /**
@@ -27,6 +28,7 @@ export interface DashboardCourse {
   name: string;
   semester: string;
   created_at: string;
+  class_count: number;
   classes: DashboardClass[];
 }
 

@@ -3,7 +3,7 @@
  * Operasi enrollment terpisah dari perubahan profil global dan tunduk penguncian nilai final.
  */
 import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -158,6 +158,7 @@ export function Roster({
   const columns = useMemo<ColumnDef<RosterEntry>[]>(() => [
     {
       id: "student",
+      size: 40,
       accessorFn: (entry) => `${entry.student.full_name} ${entry.student.nim}`,
       header: "Mahasiswa",
       cell: ({ row }) => (
@@ -171,18 +172,20 @@ export function Roster({
     },
     {
       id: "email",
+      size: 35,
       accessorFn: (entry) => entry.student.email ?? "",
       header: "Email",
       cell: ({ row }) => <span className="max-w-56 break-all whitespace-normal">{row.original.student.email || "—"}</span>,
     },
     ...(!locked ? [{
       id: "actions",
+      size: 25,
       header: "Tindakan",
       enableSorting: false,
       cell: ({ row }: { row: { original: RosterEntry } }) => (
         <div className="flex justify-end">
-          <Button aria-label={`Keluarkan ${row.original.student.full_name}`} onClick={() => setRemoving(row.original)} size="sm" variant="destructive">
-            Keluarkan
+          <Button aria-label={`Keluarkan ${row.original.student.full_name}`} onClick={() => setRemoving(row.original)} size="icon" variant="destructive">
+            <Trash2 aria-hidden="true" className="size-4" />
           </Button>
         </div>
       ),
@@ -194,10 +197,13 @@ export function Roster({
         <h2 className="font-semibold" id="roster-title">
           Daftar mahasiswa kelas
         </h2>
+        <div className="flex gap-2">
+        <Button aria-label="Segarkan daftar mahasiswa" disabled={query.isFetching} onClick={() => void query.refetch()} type="button" variant="outline"><RefreshCw aria-hidden="true" className="size-4" /><span className="hidden sm:inline">Segarkan</span></Button>
         <Button disabled={locked} onClick={() => setAdding(true)}>
           <Plus data-icon="inline-start" />
           Tambah mahasiswa ke kelas
         </Button>
+        </div>
       </div>
       {query.isPending || query.error ? (
         <QueryState query={query} />

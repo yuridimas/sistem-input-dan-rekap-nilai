@@ -38,7 +38,7 @@ async def get_summary(db: AsyncSession, current_user: User) -> DashboardSummaryR
         if course_id not in courses:
             courses[course_id] = DashboardCourseRead(
                 id=course_id, code=row["code"], name=row["name"], semester=row["semester"],
-                created_at=row["created_at"], classes=[],
+                created_at=row["created_at"], class_count=0, classes=[],
             )
         if row["class_id"] is None:
             continue
@@ -47,9 +47,10 @@ async def get_summary(db: AsyncSession, current_user: User) -> DashboardSummaryR
         class_ = DashboardClassRead(
             id=row["class_id"], section=row["section"], academic_year=row["academic_year"],
             student_count=row["student_count"], status="released" if released else "pending",
-            released_at=row["released_at"] if released else None,
+            released_at=row["released_at"] if released else None, updated_at=row["updated_at"],
         )
         courses[course_id].classes.append(class_)
+        courses[course_id].class_count += 1
         class_count += 1
         pending_count += int(not released)
         if released:
@@ -57,6 +58,10 @@ async def get_summary(db: AsyncSession, current_user: User) -> DashboardSummaryR
                 **class_.model_dump(), course_id=course_id,
                 course_code=row["code"], course_name=row["name"],
             ))
+    for course in courses.values():
+        course.classes.sort(key=lambda item: str(item.id))
+        course.classes.sort(key=lambda item: item.updated_at, reverse=True)
+        course.classes = course.classes[:5]
     # Sort stabil dua tahap memakai ID sebagai tie-break untuk waktu rilis yang sama.
     releases.sort(key=lambda item: str(item.id))
     releases.sort(key=lambda item: item.released_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)

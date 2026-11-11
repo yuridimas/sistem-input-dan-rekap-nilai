@@ -44,7 +44,8 @@ describe("users page", () => {
     expect(screen.getByRole("row", { name: /Admin Seed admin@example.test Superadmin Nonaktif/ })).toBeInTheDocument();
     expect(screen.queryByText(/password/i)).not.toBeInTheDocument();
 
-    const [roleFilter, activeFilter] = screen.getAllByRole("combobox");
+    const roleFilter = screen.getByRole("combobox", { name: "Peran" });
+    const activeFilter = screen.getByRole("combobox", { name: "Status" });
     await userEvent.selectOptions(roleFilter, "lecturer");
     await userEvent.selectOptions(activeFilter, "true");
     await waitFor(() => expect(api.get).toHaveBeenLastCalledWith("/admin/users", {

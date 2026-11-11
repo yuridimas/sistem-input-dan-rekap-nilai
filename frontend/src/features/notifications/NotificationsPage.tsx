@@ -3,7 +3,7 @@
  * queued menandai pengiriman menunggu; sent mencerminkan hasil transport yang dicatat worker.
  */
 import { useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, RotateCw } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { DataTable, DataTableToolbar } from "@/components/data-table";
+import { DataTable } from "@/components/data-table";
 import { errorMessage } from "@/features/academic/api";
 import { PageHeader, QueryState } from "@/features/academic/Management";
 import { useAuth } from "@/features/auth/useAuth";
@@ -93,28 +93,25 @@ export function NotificationsPage() {
 
   const records = query.data ?? [];
   const columns = useMemo<ColumnDef<NotificationRecord>[]>(() => [
-    { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
+    { accessorKey: "status", size: 12, header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
     {
       id: "student_email",
+      size: 22,
       accessorFn: (row) => row.student_email ?? "",
       header: "Email mahasiswa",
       cell: ({ row }) => <span className="max-w-64 break-all whitespace-normal">{row.original.student_email ?? "Email tidak tersedia"}</span>,
     },
-    { accessorKey: "created_at", header: "Dibuat", cell: ({ row }) => <span className="whitespace-nowrap">{dateLabel(row.original.created_at)}</span> },
-    { accessorKey: "sent_at", header: "Terkirim", cell: ({ row }) => <span className="whitespace-nowrap">{dateLabel(row.original.sent_at)}</span> },
-    { accessorKey: "error_message", header: "Detail kegagalan", enableSorting: false, cell: ({ row }) => <span className="max-w-sm whitespace-normal">{row.original.error_message ?? "—"}</span> },
+    { accessorKey: "created_at", size: 16, header: "Dibuat", cell: ({ row }) => <span className="whitespace-nowrap">{dateLabel(row.original.created_at)}</span> },
+    { accessorKey: "sent_at", size: 16, header: "Terkirim", cell: ({ row }) => <span className="whitespace-nowrap">{dateLabel(row.original.sent_at)}</span> },
+    { accessorKey: "error_message", size: 24, header: "Detail kegagalan", enableSorting: false, cell: ({ row }) => <span className="max-w-sm whitespace-normal">{row.original.error_message ?? "—"}</span> },
     {
       id: "actions",
+      size: 10,
       header: () => <span className="sr-only">Tindakan</span>,
       enableSorting: false,
       cell: ({ row }) => row.original.status === "failed" ? (
-        <Button
-          disabled={retry.isPending}
-          onClick={() => retry.mutate(row.original.id)}
-          type="button"
-          variant="outline"
-        >
-          {retry.isPending && retry.variables === row.original.id ? "Mengirim ulang…" : `Kirim ulang ke ${row.original.student_email ?? "mahasiswa"}`}
+        <Button aria-label={`Kirim ulang ke ${row.original.student_email ?? "mahasiswa"}`} disabled={retry.isPending} onClick={() => retry.mutate(row.original.id)} size="icon" type="button" variant="outline">
+          <RotateCw aria-hidden="true" className="size-4" />
         </Button>
       ) : null,
     },
@@ -122,38 +119,17 @@ export function NotificationsPage() {
 
   return (
     <section className="mx-auto max-w-6xl">
-      <PageHeader
-        description="Pantau status email rilis nilai dan kirim ulang pengiriman yang gagal."
-        title="Status notifikasi"
-      >
-        <Button disabled={query.isFetching} onClick={() => void query.refetch()} type="button" variant="outline">
-          <RefreshCw aria-hidden="true" className="size-4" />
-          Segarkan
-        </Button>
-      </PageHeader>
+      <PageHeader description="Pantau status email rilis nilai dan kirim ulang pengiriman yang gagal." title="Status notifikasi" />
 
-      <DataTableToolbar>
-        <p className="text-sm text-muted-foreground">{records.length} notifikasi</p>
-        <label className="flex items-center gap-2 text-sm" htmlFor="notification-status-filter">
-          Status
-          <NativeSelect id="notification-status-filter" onChange={(event) => setFilter(event.target.value as StatusFilter)} value={filter}>
-            <NativeSelectOption value="all">Semua status</NativeSelectOption>
-            <NativeSelectOption value="queued">Antrean</NativeSelectOption>
-            <NativeSelectOption value="sent">Terkirim</NativeSelectOption>
-            <NativeSelectOption value="failed">Gagal</NativeSelectOption>
-          </NativeSelect>
-        </label>
-      </DataTableToolbar>
-
-      {query.isPending || query.error ? (
-        <QueryState query={query} />
-      ) : !records.length ? (
-        <p className="rounded-md border bg-background px-4 py-10 text-center text-sm text-muted-foreground" role="status">
-          Tidak ada notifikasi untuk status ini.
-        </p>
-      ) : (
-        <DataTable columns={columns} data={records} getRowId={(row) => row.id} />
-      )}
+      {query.error && <QueryState query={query} />}
+      <DataTable
+          actions={<Button aria-label="Segarkan" disabled={query.isFetching} onClick={() => void query.refetch()} type="button" variant="outline"><RefreshCw aria-hidden="true" className="size-4" /><span className="hidden sm:inline">Segarkan</span></Button>}
+          columns={columns}
+          data={records}
+          emptyMessage={query.isPending ? "Memuat data" : "Tidak ada notifikasi untuk status ini."}
+          getRowId={(row) => row.id}
+          toolbar={<><p className="text-sm text-muted-foreground">{records.length} notifikasi</p><label className="flex items-center gap-2 text-sm" htmlFor="notification-status-filter">Status<NativeSelect id="notification-status-filter" onChange={(event) => setFilter(event.target.value as StatusFilter)} value={filter}><NativeSelectOption value="all">Semua status</NativeSelectOption><NativeSelectOption value="queued">Antrean</NativeSelectOption><NativeSelectOption value="sent">Terkirim</NativeSelectOption><NativeSelectOption value="failed">Gagal</NativeSelectOption></NativeSelect></label></>}
+        />
       {retry.error && (
         <Alert className="mt-4" variant="destructive">
           <AlertTitle>Gagal mengirim ulang notifikasi</AlertTitle>

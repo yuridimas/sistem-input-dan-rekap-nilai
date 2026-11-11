@@ -9,7 +9,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 
 import { DataTablePagination } from "./DataTablePagination";
+import { DataTableToolbar } from "./DataTableToolbar";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -30,6 +31,9 @@ interface DataTableProps<TData, TValue> {
   filterValue?: string;
   getRowId?: (row: TData, index: number) => string;
   initialPageSize?: number;
+  toolbar?: ReactNode;
+  search?: ReactNode;
+  actions?: ReactNode;
 }
 
 /** Render tabel data dengan sorting, pencarian global opsional, dan pagination lokal. */
@@ -40,6 +44,9 @@ export function DataTable<TData, TValue>({
   filterValue = "",
   getRowId,
   initialPageSize = 10,
+  toolbar,
+  search,
+  actions,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const table = useReactTable({
@@ -57,9 +64,18 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="space-y-3">
-      <div className="overflow-x-auto rounded-xl border border-border bg-background">
-        <Table>
+    <div className="space-y-3 rounded-xl border border-border bg-background p-4 sm:p-5">
+      <DataTableToolbar actions={actions} onPageSizeChange={(size) => table.setPageSize(size)} pageSize={table.getState().pagination.pageSize} search={search}>
+        {toolbar}
+      </DataTableToolbar>
+      <div className="overflow-x-auto">
+        <Table className="min-w-[720px] table-fixed">
+          <colgroup>
+            {table.getVisibleLeafColumns().map((column) => {
+              const total = table.getVisibleLeafColumns().reduce((sum, item) => sum + (item.columnDef.size ?? 150), 0);
+              return <col key={column.id} style={{ width: `${((column.columnDef.size ?? 150) / total) * 100}%` }} />;
+            })}
+          </colgroup>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>

@@ -4,7 +4,6 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { describe, expect, it } from "vitest";
 
 import { DataTable } from "./DataTable";
-import { DataTableToolbar } from "./DataTableToolbar";
 
 interface Person {
   id: string;
@@ -38,25 +37,19 @@ describe("DataTable", () => {
     function Harness() {
       const [filter, setFilter] = useState("");
       return (
-        <>
-          <DataTableToolbar>
-            <label>
-              Cari nama
-              <input aria-label="Cari nama" onChange={(event) => setFilter(event.target.value)} value={filter} />
-            </label>
-          </DataTableToolbar>
-          <DataTable
-            columns={columns}
-            data={rows}
-            filterValue={filter}
-            getRowId={(row) => row.id}
-            initialPageSize={1}
-          />
-        </>
+        <DataTable
+          columns={columns}
+          data={rows}
+          filterValue={filter}
+          getRowId={(row) => row.id}
+          initialPageSize={1}
+          search={<label>Cari nama<input aria-label="Cari nama" onChange={(event) => setFilter(event.target.value)} value={filter} /></label>}
+        />
       );
     }
 
     render(<Harness />);
+    expect(screen.getByLabelText("Baris per halaman")).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: "Budi" })).toBeInTheDocument();
     fireEvent.change(screen.getByRole("textbox", { name: "Cari nama" }), { target: { value: "i" } });
     expect(screen.getByRole("cell", { name: "Budi" })).toBeInTheDocument();

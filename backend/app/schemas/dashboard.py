@@ -23,6 +23,7 @@ class DashboardClassRead(BaseModel):
     student_count: int
     status: Literal["pending", "released"]
     released_at: datetime | None
+    updated_at: datetime
 
 
 class DashboardCourseRead(BaseModel):
@@ -33,6 +34,7 @@ class DashboardCourseRead(BaseModel):
     name: str
     semester: str
     created_at: datetime
+    class_count: int
     classes: list[DashboardClassRead]
 
 

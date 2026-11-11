@@ -4,14 +4,13 @@
  */
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DataTable, DataTableToolbar } from "@/components/data-table";
+import { DataTable } from "@/components/data-table";
 import {
-  NoData,
   PageHeader,
   QueryState,
 } from "@/features/academic/Management";
@@ -37,6 +36,7 @@ export function CoursesPage() {
   const columns = useMemo<ColumnDef<Course>[]>(() => [
     {
       id: "course",
+      size: 45,
       accessorFn: (course) => `${course.name} ${course.code}`,
       header: "Mata kuliah",
       cell: ({ row }) => (
@@ -50,20 +50,22 @@ export function CoursesPage() {
     },
     {
       id: "semester",
+      size: 25,
       accessorFn: (course) => `${course.semester} ${course.credits}`,
       header: "Semester / SKS",
       cell: ({ row }) => `${row.original.semester} · ${row.original.credits} SKS`,
     },
     {
       id: "actions",
+      size: 30,
       header: "Tindakan",
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
           {(user?.role === "superadmin" || row.original.created_by === user?.id) && (
             <>
-              <Button aria-label={`Edit ${row.original.name}`} onClick={() => setDialog({ course: row.original })} size="sm" variant="outline">Edit</Button>
-              <Button aria-label={`Hapus ${row.original.name}`} onClick={() => setDialog({ course: row.original, deleting: true })} size="sm" variant="destructive">Hapus</Button>
+              <Button aria-label={`Edit ${row.original.name}`} onClick={() => setDialog({ course: row.original })} size="icon" variant="outline"><Pencil aria-hidden="true" className="size-4" /></Button>
+              <Button aria-label={`Hapus ${row.original.name}`} onClick={() => setDialog({ course: row.original, deleting: true })} size="icon" variant="destructive"><Trash2 aria-hidden="true" className="size-4" /></Button>
             </>
           )}
         </div>
@@ -83,31 +85,15 @@ export function CoursesPage() {
           Tambah mata kuliah
         </Button>
       </PageHeader>
-      <DataTableToolbar>
-        <label className="grid w-full max-w-md gap-1.5 text-sm" htmlFor="course-search">
-          Cari mata kuliah
-          <Input
-            id="course-search"
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Kode atau nama mata kuliah"
-          type="search"
-          value={search}
-          />
-        </label>
-      </DataTableToolbar>
-      {query.isPending || query.error ? (
-        <QueryState query={query} />
-      ) : rows.length === 0 ? (
-        <NoData
-          description={
-            search
-              ? "Tidak ada mata kuliah yang cocok dengan pencarian."
-              : "Tambahkan mata kuliah atau lihat penugasan kelas Anda di sini."
-          }
+      {query.error && <QueryState query={query} />}
+      <DataTable
+          actions={<Button aria-label="Segarkan" disabled={query.isFetching} onClick={() => void query.refetch()} type="button" variant="outline"><RefreshCw aria-hidden="true" className="size-4" /><span className="hidden sm:inline">Segarkan</span></Button>}
+          columns={columns}
+          data={rows}
+          emptyMessage={query.isPending ? "Memuat data" : search ? "Tidak ada mata kuliah yang cocok dengan pencarian." : "Belum ada mata kuliah"}
+          getRowId={(course) => course.id}
+          search={<label className="grid w-full gap-1.5 text-sm sm:w-64" htmlFor="course-search">Cari mata kuliah<Input id="course-search" onChange={(event) => setSearch(event.target.value)} placeholder="Kode atau nama mata kuliah" type="search" value={search} /></label>}
         />
-      ) : (
-        <DataTable columns={columns} data={rows} emptyMessage="Belum ada mata kuliah" getRowId={(course) => course.id} />
-      )}
       {dialog && <CourseDialog {...dialog} close={() => setDialog(null)} />}
     </section>
   );

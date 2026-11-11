@@ -3,15 +3,14 @@
  * Pembuatan tersedia untuk dosen/admin; perubahan profil ditampilkan hanya bagi superadmin.
  */
 import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DataTable, DataTableToolbar } from "@/components/data-table";
+import { DataTable } from "@/components/data-table";
 import {
-  NoData,
   PageHeader,
   QueryState,
 } from "@/features/academic/Management";
@@ -40,6 +39,7 @@ export function StudentsPage() {
   const columns = useMemo<ColumnDef<Student>[]>(() => [
     {
       id: "student",
+      size: 40,
       accessorFn: (student) => `${student.full_name} ${student.nim}`,
       header: "Mahasiswa",
       cell: ({ row }) => (
@@ -53,17 +53,19 @@ export function StudentsPage() {
     },
     {
       accessorKey: "email",
+      size: 35,
       header: "Email",
       cell: ({ row }) => <span className="max-w-64 break-all whitespace-normal">{row.original.email || "—"}</span>,
     },
     ...(user?.role === "superadmin" ? [{
       id: "actions",
+      size: 25,
       header: "Tindakan",
       enableSorting: false,
       cell: ({ row }: { row: { original: Student } }) => (
         <div className="flex justify-end gap-2">
-          <Button aria-label={`Edit ${row.original.full_name}`} onClick={() => setDialog({ student: row.original })} size="sm" variant="outline">Edit</Button>
-          <Button aria-label={`Hapus ${row.original.full_name}`} onClick={() => setDialog({ student: row.original, deleting: true })} size="sm" variant="destructive">Hapus</Button>
+          <Button aria-label={`Edit ${row.original.full_name}`} onClick={() => setDialog({ student: row.original })} size="icon" variant="outline"><Pencil aria-hidden="true" className="size-4" /></Button>
+          <Button aria-label={`Hapus ${row.original.full_name}`} onClick={() => setDialog({ student: row.original, deleting: true })} size="icon" variant="destructive"><Trash2 aria-hidden="true" className="size-4" /></Button>
         </div>
       ),
     }] : []),
@@ -79,31 +81,15 @@ export function StudentsPage() {
           Tambah mahasiswa
         </Button>
       </PageHeader>
-      <DataTableToolbar>
-        <label className="grid w-full max-w-md gap-1.5 text-sm" htmlFor="student-search">
-          Cari mahasiswa
-          <Input
-            id="student-search"
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="NIM atau nama lengkap"
-          type="search"
-          value={search}
-          />
-        </label>
-      </DataTableToolbar>
-      {query.isPending || query.error ? (
-        <QueryState query={query} />
-      ) : rows.length === 0 ? (
-        <NoData
-          description={
-            search
-              ? "Tidak ada mahasiswa yang cocok dengan pencarian."
-              : "Tambahkan mahasiswa atau daftarkan NIM melalui roster kelas."
-          }
+      {query.error && <QueryState query={query} />}
+      <DataTable
+          actions={<Button aria-label="Segarkan" disabled={query.isFetching} onClick={() => void query.refetch()} type="button" variant="outline"><RefreshCw aria-hidden="true" className="size-4" /><span className="hidden sm:inline">Segarkan</span></Button>}
+          columns={columns}
+          data={rows}
+          emptyMessage={query.isPending ? "Memuat data" : search ? "Tidak ada mahasiswa yang cocok dengan pencarian." : "Belum ada mahasiswa"}
+          getRowId={(student) => student.id}
+          search={<label className="grid w-full gap-1.5 text-sm sm:w-64" htmlFor="student-search">Cari mahasiswa<Input id="student-search" onChange={(event) => setSearch(event.target.value)} placeholder="NIM atau nama lengkap" type="search" value={search} /></label>}
         />
-      ) : (
-        <DataTable columns={columns} data={rows} emptyMessage="Belum ada mahasiswa" getRowId={(student) => student.id} />
-      )}
       {dialog && <StudentDialog {...dialog} close={() => setDialog(null)} />}
     </section>
   );

@@ -17,6 +17,7 @@ from app.models.class_ import Class
 from app.models.course import Course
 from app.models.enrollment import Enrollment
 from app.models.grade import Grade, GradeStatus
+from app.models.score import Score
 
 
 async def list_summary_rows(db: AsyncSession, lecturer_id: uuid.UUID | None) -> list[RowMapping]:
@@ -42,6 +43,18 @@ async def list_summary_rows(db: AsyncSession, lecturer_id: uuid.UUID | None) -> 
         .group_by(Enrollment.class_id)
         .subquery()
     )
+    activity = (
+        select(
+            Enrollment.class_id,
+            func.max(Enrollment.enrolled_at).label("enrollment_updated_at"),
+            func.max(Score.updated_at).label("score_updated_at"),
+            func.max(Grade.finalized_at).label("grade_updated_at"),
+        )
+        .outerjoin(Score, Score.enrollment_id == Enrollment.id)
+        .outerjoin(Grade, Grade.enrollment_id == Enrollment.id)
+        .group_by(Enrollment.class_id)
+        .subquery()
+    )
     statement = (
         select(
             Course.id.label("course_id"), Course.code, Course.name, Course.semester, Course.created_at,
@@ -49,10 +62,12 @@ async def list_summary_rows(db: AsyncSession, lecturer_id: uuid.UUID | None) -> 
             func.coalesce(counts.c.student_count, 0).label("student_count"),
             func.coalesce(counts.c.finalized_count, 0).label("finalized_count"),
             counts.c.released_at,
+            func.greatest(Class.created_at, activity.c.enrollment_updated_at, activity.c.score_updated_at, activity.c.grade_updated_at).label("updated_at"),
         )
         .select_from(Course)
         .outerjoin(Class, Class.course_id == Course.id)
         .outerjoin(counts, counts.c.class_id == Class.id)
+        .outerjoin(activity, activity.c.class_id == Class.id)
         .order_by(Course.created_at.desc(), Course.id, Class.academic_year.desc(), Class.section, Class.id)
     )
     if lecturer_id is not None:
