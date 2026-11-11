@@ -39,7 +39,7 @@
 - Input data tetap `Course` dari `@/features/academic/api` dan daftar tetap berasal dari `useAcademicQuery<Course[]>("/courses")`.
 - Aksi tambah/edit/hapus tetap memakai `CourseDialog`; permission owner/superadmin tidak berubah.
 
-- [ ] **Step 1: Tulis tes halaman Courses**
+- [x] **Step 1: Tulis tes halaman Courses**
 
   Buat harness untuk `CoursesPage` yang memalsukan `useAcademicQuery` dan `useAuth`. Tambahkan tes berikut:
 
@@ -48,29 +48,29 @@
   - `keeps create and row actions connected to existing dialogs`: Tambah membuka dialog create; edit/hapus membuka dialog untuk course yang dipilih.
   - `shows edit action in blue and keeps destructive action destructive`: edit memakai aksen biru, hapus memakai destructive, dan visibilitas tetap mengikuti owner/superadmin.
 
-- [ ] **Step 2: Jalankan tes baru dan pastikan gagal pada perbedaan UI saat ini**
+- [x] **Step 2: Jalankan tes baru dan pastikan gagal pada perbedaan UI saat ini**
 
   Run: `npm test -- --run src/features/courses/CoursesPage.test.tsx`
 
   Expected: FAIL karena search belum memakai label/posisi `Cari` inline dan edit belum memakai aksen biru; kegagalan lain hanya jika kontrak halaman yang diuji belum terpenuhi.
 
-- [ ] **Step 3: Sesuaikan CoursesPage**
+- [x] **Step 3: Sesuaikan CoursesPage**
 
   Ubah search menjadi label `Cari` inline, pertahankan search domain nama/kode, refresh di slot `actions`, dan beri edit button styling biru dari aturan fitur. Tetapkan ukuran kolom proporsional untuk mata kuliah, semester/SKS, dan tindakan; konten nama/kode harus wrap di dalam kolomnya.
 
-- [ ] **Step 4: Jalankan tes Courses dan periksa hasil**
+- [x] **Step 4: Jalankan tes Courses dan periksa hasil**
 
   Run: `npm test -- --run src/features/courses/CoursesPage.test.tsx`
 
   Expected: PASS, termasuk permission dan integrasi dialog yang ada.
 
-- [ ] **Step 5: Build dan lint frontend**
+- [x] **Step 5: Build dan lint frontend**
 
   Run dari `frontend/`: `npm run build` dan `npm run lint`
 
   Expected: kedua perintah berhasil.
 
-- [ ] **Step 6: Commit task Courses**
+- [x] **Step 6: Commit task Courses**
 
   ```bash
   git add frontend/src/features/courses/CoursesPage.tsx frontend/src/features/courses/CoursesPage.test.tsx
@@ -87,7 +87,7 @@
 - Data tetap `Student` dari `@/features/academic/api` dan daftar tetap dimuat oleh `useAcademicQuery<Student[]>("/students")`.
 - Mahasiswa dapat ditambah sesuai perilaku yang ada; aksi edit/hapus tetap hanya untuk superadmin.
 
-- [ ] **Step 1: Perluas tes Students sebelum mengubah UI**
+- [x] **Step 1: Perluas tes Students sebelum mengubah UI**
 
   Tambahkan mock `refetch` pada query fixture dan tes berikut:
 
@@ -96,29 +96,29 @@
   - `wraps long and missing student emails inside their cell`: email panjang tetap di kolom email; nilai null menampilkan placeholder tanpa overflow.
   - `styles superadmin edit action blue and preserves lecturer restrictions`: edit biru, hapus destructive, dan dosen tetap tidak melihat aksi edit/hapus.
 
-- [ ] **Step 2: Jalankan tes Students dan konfirmasi kegagalan yang relevan**
+- [x] **Step 2: Jalankan tes Students dan konfirmasi kegagalan yang relevan**
 
   Run: `npm test -- --run src/features/students/StudentsPage.test.tsx`
 
   Expected: FAIL pada label/posisi search atau style edit; tes permission lama tetap menjadi baseline.
 
-- [ ] **Step 3: Sesuaikan StudentsPage**
+- [x] **Step 3: Sesuaikan StudentsPage**
 
   Terapkan search inline berlabel `Cari`, refresh di toolbar kanan, wrapping email dengan `whitespace-normal text-wrap` dan pemecahan kata, serta styling biru untuk edit. Pertahankan ukuran relatif mahasiswa/email/tindakan dan layout saat kolom tindakan tidak dirender.
 
-- [ ] **Step 4: Jalankan tes Students**
+- [x] **Step 4: Jalankan tes Students**
 
   Run: `npm test -- --run src/features/students/StudentsPage.test.tsx`
 
   Expected: PASS untuk pencarian, wrapping, refresh, dan pembatasan aksi berbasis role.
 
-- [ ] **Step 5: Build dan lint frontend**
+- [x] **Step 5: Build dan lint frontend**
 
   Run dari `frontend/`: `npm run build` dan `npm run lint`
 
   Expected: kedua perintah berhasil.
 
-- [ ] **Step 6: Commit task Students**
+- [x] **Step 6: Commit task Students**
 
   ```bash
   git add frontend/src/features/students/StudentsPage.tsx frontend/src/features/students/StudentsPage.test.tsx
@@ -136,37 +136,37 @@
 - Retry tetap `POST /admin/notifications/{id}/retry`; sukses memperbarui cache dan memilih status hasil retry.
 - Filter awal tetap `failed` agar halaman audit membuka notifikasi yang memerlukan tindakan.
 
-- [ ] **Step 1: Ubah tes agar mensyaratkan filter Apply/Reset dan search lokal**
+- [x] **Step 1: Ubah tes agar mensyaratkan filter Apply/Reset dan search lokal**
 
   Perbarui `filters statuses and retries a failed notification` agar perubahan status draft tidak mengubah `api.get` sebelum klik Terapkan. Setelah Terapkan, pastikan query memakai status terpilih. Klik Reset harus mengembalikan draft dan query aktif ke `failed`. Tambahkan tes `searches notification email and error text locally` yang memastikan input `Cari` menyaring hasil tanpa request API tambahan. Tambahkan tes refresh toolbar memanggil `query.refetch`.
 
-- [ ] **Step 2: Jalankan tes Notifications dan pastikan gagal pada perilaku yang belum ada**
+- [x] **Step 2: Jalankan tes Notifications dan pastikan gagal pada perilaku yang belum ada**
 
   Run: `npm test -- --run src/features/notifications/NotificationsPage.test.tsx`
 
   Expected: FAIL karena filter status saat ini langsung mengirim request, belum ada search, dan filter masih di toolbar tabel.
 
-- [ ] **Step 3: Pindahkan filter status ke card filter terpisah**
+- [x] **Step 3: Pindahkan filter status ke card filter terpisah**
 
   Simpan `draftFilter` terpisah dari `filter` aktif. Terapkan filter hanya melalui submit form; Reset mengembalikan keduanya ke `failed`. Saat retry sukses, sinkronkan nilai aktif dan draft ke status hasil retry supaya tampilan tetap konsisten.
 
-- [ ] **Step 4: Tambahkan search inline dan rapikan toolbar tabel**
+- [x] **Step 4: Tambahkan search inline dan rapikan toolbar tabel**
 
   Tambahkan search lokal berlabel `Cari` yang mencocokkan email, status, dan detail error; jangan ubah query key saat mengetik. Pindahkan refresh ke slot `actions`. Hapus hitungan notifikasi dari slot toolbar karena informasi jumlah baris sudah disediakan pagination. Jangan tambahkan kartu statistik: endpoint yang sedang dipakai hanya menyediakan hasil sesuai status aktif, bukan agregat lintas status.
 
-- [ ] **Step 5: Verifikasi status filter, retry, search, dan akses**
+- [x] **Step 5: Verifikasi status filter, retry, search, dan akses**
 
   Run: `npm test -- --run src/features/notifications/NotificationsPage.test.tsx`
 
   Expected: PASS untuk Apply/Reset, retry sukses/gagal, pencarian lokal, sorting, dan guard role superadmin.
 
-- [ ] **Step 6: Build dan lint frontend**
+- [x] **Step 6: Build dan lint frontend**
 
   Run dari `frontend/`: `npm run build` dan `npm run lint`
 
   Expected: kedua perintah berhasil.
 
-- [ ] **Step 7: Commit task Notifications**
+- [x] **Step 7: Commit task Notifications**
 
   ```bash
   git add frontend/src/features/notifications/NotificationsPage.tsx frontend/src/features/notifications/NotificationsPage.test.tsx
@@ -175,7 +175,14 @@
 
 ### Final verification
 
-- [ ] Jalankan seluruh tes frontend: `npm test` dari `frontend/`; semua tes lulus.
-- [ ] Jalankan `npm run build` dan `npm run lint`; keduanya berhasil.
-- [ ] Periksa diff akhir untuk memastikan tidak ada endpoint/backend change, aksi yang tidak didukung, atau file di luar tiga halaman dan tesnya.
-- [ ] Uji `/courses`, `/students`, dan `/notifications` di browser untuk posisi toolbar, wrap kolom, filter status, loading/error/empty state, dan aksi berbasis role.
+- [x] Jalankan seluruh tes frontend: `npm test` dari `frontend/`; semua tes lulus.
+- [x] Jalankan `npm run build` dan `npm run lint`; keduanya berhasil.
+- [x] Periksa diff akhir untuk memastikan tidak ada endpoint/backend change, aksi yang tidak didukung, atau file di luar tiga halaman dan tesnya.
+- [x] Uji `/courses`, `/students`, dan `/notifications` di browser untuk posisi toolbar, wrap kolom, filter status, loading/error/empty state, dan aksi berbasis role.
+
+## Hasil pelaksanaan
+
+- Branch: `feature-index-standardization`.
+- Tes frontend: 84 lulus; build berhasil; lint berhasil dengan dua warning yang sudah ada pada DataTable dan Button.
+- Browser fixture: Courses, Students, Notifications pada lebar 1280 dan 390 px; wrapping kolom dan toolbar diperiksa.
+- Review akhir independen: tidak ada temuan Critical/Important tersisa. Temuan mobile alignment diperbaiki dan diverifikasi RED ke GREEN.
