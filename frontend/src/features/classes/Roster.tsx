@@ -3,17 +3,17 @@
  * Operasi enrollment terpisah dari perubahan profil global dan tunduk penguncian nilai final.
  */
 import { useMemo, useState } from "react";
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Eye, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { FieldGroup } from "@/components/ui/field";
 import { DataTable } from "@/components/data-table";
 import {
   MutationDialog,
-  NoData,
   QueryState,
   TextField,
 } from "@/features/academic/Management";
@@ -155,6 +155,11 @@ export function Roster({
   const query = useAcademicQuery<RosterEntry[]>(`/classes/${classId}/roster`);
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<RosterEntry | null>(null);
+  const [search, setSearch] = useState("");
+  const normalizedSearch = search.trim().toLocaleLowerCase("id-ID");
+  const rows = useMemo(() => (query.data ?? []).filter((row) =>
+    `${row.student.full_name} ${row.student.nim} ${row.student.email ?? ""}`.toLocaleLowerCase("id-ID").includes(normalizedSearch),
+  ), [query.data, normalizedSearch]);
   const columns = useMemo<ColumnDef<RosterEntry>[]>(() => [
     {
       id: "student",
@@ -162,34 +167,35 @@ export function Roster({
       accessorFn: (entry) => `${entry.student.full_name} ${entry.student.nim}`,
       header: "Mahasiswa",
       cell: ({ row }) => (
-        <div className="max-w-64 whitespace-normal">
-          <Link className="font-medium underline-offset-4 hover:underline" to={`/students/${row.original.student.id}`}>
+        <div className="min-w-0 whitespace-normal text-wrap break-words">
+          <span className="font-medium">
             {row.original.student.full_name}
-          </Link>
+          </span>
           <p className="mt-1 text-xs text-muted-foreground">{row.original.student.nim}</p>
         </div>
       ),
     },
     {
       id: "email",
-      size: 35,
+      size: 38,
       accessorFn: (entry) => entry.student.email ?? "",
       header: "Email",
-      cell: ({ row }) => <span className="max-w-56 break-all whitespace-normal">{row.original.student.email || "—"}</span>,
+      cell: ({ row }) => <span className="block min-w-0 whitespace-normal text-wrap break-all">{row.original.student.email || "—"}</span>,
     },
-    ...(!locked ? [{
+    {
       id: "actions",
-      size: 25,
+      size: 22,
       header: "Tindakan",
       enableSorting: false,
-      cell: ({ row }: { row: { original: RosterEntry } }) => (
-        <div className="flex justify-end">
-          <Button aria-label={`Keluarkan ${row.original.student.full_name}`} onClick={() => setRemoving(row.original)} size="icon" variant="destructive">
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-2">
+          <Button aria-label={`Lihat mahasiswa ${row.original.student.full_name} (${row.original.student.nim})`} render={<Link to={`/students/${row.original.student.id}`} />} size="icon" variant="outline"><Eye aria-hidden="true" className="size-4" /></Button>
+          {!locked && <Button aria-label={`Keluarkan ${row.original.student.full_name}`} onClick={() => setRemoving(row.original)} size="icon" variant="destructive">
             <Trash2 aria-hidden="true" className="size-4" />
-          </Button>
+          </Button>}
         </div>
       ),
-    }] : []),
+    },
   ], [locked]);
   return (
     <section className="flex flex-col gap-5" aria-labelledby="roster-title">
@@ -197,21 +203,20 @@ export function Roster({
         <h2 className="font-semibold" id="roster-title">
           Daftar mahasiswa kelas
         </h2>
-        <div className="flex gap-2">
-        <Button aria-label="Segarkan daftar mahasiswa" disabled={query.isFetching} onClick={() => void query.refetch()} type="button" variant="outline"><RefreshCw aria-hidden="true" className="size-4" /><span className="hidden sm:inline">Segarkan</span></Button>
         <Button disabled={locked} onClick={() => setAdding(true)}>
           <Plus data-icon="inline-start" />
           Tambah mahasiswa ke kelas
         </Button>
-        </div>
       </div>
-      {query.isPending || query.error ? (
-        <QueryState query={query} />
-      ) : !query.data?.length ? (
-        <NoData description="Daftarkan mahasiswa dengan NIM untuk mulai mengisi roster kelas." />
-      ) : (
-        <DataTable columns={columns} data={query.data} getRowId={(row) => row.id} />
-      )}
+      {query.error && <QueryState query={query} />}
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        emptyMessage={query.isPending ? "Memuat data" : normalizedSearch ? "Tidak ada mahasiswa yang cocok dengan pencarian." : "Belum ada mahasiswa di kelas ini."}
+        search={<label className="flex items-center gap-2 whitespace-nowrap text-sm" htmlFor={`roster-search-${classId}`}>Cari<Input className="w-48 sm:w-64" id={`roster-search-${classId}`} onChange={(event) => setSearch(event.target.value)} placeholder="Nama, NIM, atau email" type="search" value={search} /></label>}
+        actions={<Button aria-label="Segarkan" disabled={query.isFetching} onClick={() => void query.refetch()} type="button" variant="outline"><RefreshCw aria-hidden="true" className="size-4" /><span className="hidden sm:inline">Segarkan</span></Button>}
+      />
       {adding && !locked && (
         <EnrollmentDialog classId={classId} close={() => setAdding(false)} />
       )}
