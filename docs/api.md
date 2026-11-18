@@ -1,34 +1,34 @@
-# API reference
+# Referensi API
 
-## Base URLs and contracts
+## Base URL dan kontrak
 
-| Runtime | API base | Schema |
+| Runtime | Base API | Schema |
 | --- | --- | --- |
-| Local Docker | `http://localhost:18000` | `/openapi.json` |
-| Host Uvicorn | `http://localhost:8000` | `/openapi.json` |
-| Deployment | Frontend origin plus `/api` | `/api/openapi.json` on that origin |
+| Docker lokal | `http://localhost:18000` | `/openapi.json` |
+| Uvicorn di host | `http://localhost:8000` | `/openapi.json` |
+| Deployment | Origin frontend ditambah `/api` | `/api/openapi.json` pada origin tersebut |
 
-Paths below are relative to the API base. UUID path parameters identify database records. JSON is used except for report downloads. Successful DELETE responses are empty. Decimal response values serialize as strings; clients should accept decimal strings rather than assuming JSON numbers.
+Path berikut relatif terhadap base API. Parameter path UUID mengidentifikasi record database. Format JSON dipakai selain untuk download laporan. Response DELETE yang berhasil tidak memiliki body. Nilai Decimal pada response diserialisasi sebagai string; client perlu menerima string desimal tanpa mengasumsikannya sebagai angka JSON.
 
-FastAPI exposes direct Swagger at `/docs` and ReDoc at `/redoc`. Deployment Swagger currently requests the unprefixed schema path; use `/api/openapi.json` or direct API Swagger instead. See [deployment](deployment.md#reverse-proxy-dan-tls).
+FastAPI menyediakan Swagger langsung pada `/docs` dan ReDoc pada `/redoc`. Swagger deployment saat ini meminta path schema tanpa prefix; gunakan `/api/openapi.json` atau Swagger API langsung. Lihat [deployment](deployment.md#reverse-proxy-dan-tls).
 
-The inventory below covers all 43 application operations registered by [`main.py`](../backend/app/main.py). Named contracts correspond to [`app/schemas/`](../backend/app/schemas/) and OpenAPI components. Login and refresh read `Request` manually, so their accepted bodies are described here even though OpenAPI does not declare their request bodies.
+Daftar berikut mencakup seluruh 43 operasi aplikasi yang didaftarkan oleh [`main.py`](../backend/app/main.py). Nama kontrak sesuai dengan [`app/schemas/`](../backend/app/schemas/) dan komponen OpenAPI. Login dan refresh membaca `Request` secara manual, sehingga body yang diterima dideskripsikan di sini meskipun OpenAPI tidak mendeklarasikan request body tersebut.
 
-## Authentication
+## Autentikasi
 
-`POST /auth/login` accepts JSON `{ "email": "...", "password": "..." }`; `username` is an alias for email. It also has form parsing support. JSON is the request format used in these examples. Login is limited to 30 attempts/minute per remote address.
+`POST /auth/login` menerima JSON `{ "email": "...", "password": "..." }`; `username` merupakan alias email. Endpoint ini juga mendukung parsing form. Contoh berikut memakai request JSON. Login dibatasi 30 percobaan/menit per alamat remote.
 
-`POST /auth/refresh` accepts JSON `{ "refresh_token": "..." }`, with `token` as an alias. It also supports query parameters, form input, and a raw token body. Send refresh tokens in the JSON body. Both operations return `TokenResponse`: `access_token`, `refresh_token`, and `token_type: "bearer"`.
+`POST /auth/refresh` menerima JSON `{ "refresh_token": "..." }`, dengan `token` sebagai alias. Endpoint ini juga mendukung query parameter, input form, dan body token mentah. Kirim refresh token dalam body JSON. Kedua operasi mengembalikan `TokenResponse`: `access_token`, `refresh_token`, dan `token_type: "bearer"`.
 
-Use `Authorization: Bearer <access_token>` for protected operations. Refresh rotates both tokens; default expiry is 15 minutes for access and seven days for refresh. The used-refresh list is per process, lost on restart, and not shared across API workers. Inactive accounts are rejected even if their token has not expired.
+Gunakan `Authorization: Bearer <access_token>` untuk operasi terlindungi. Refresh merotasi kedua token; waktu kedaluwarsa default adalah 15 menit untuk access dan tujuh hari untuk refresh. Daftar refresh yang sudah dipakai berlaku per proses, hilang saat restart, dan tidak dibagikan antar-worker API. Akun nonaktif ditolak meskipun tokennya belum kedaluwarsa.
 
-## PowerShell example setup
+## Persiapan contoh PowerShell
 
-Run against an installed development/test instance. Login with your configured account:
+Jalankan pada instance development/test yang sudah terpasang. Login dengan akun yang dikonfigurasi:
 
 ```powershell
 $apiBase = 'http://localhost:18000'
-$credential = Get-Credential -Message 'Application login'
+$credential = Get-Credential -Message 'Login aplikasi'
 $loginPayload = @{
   email = $credential.UserName
   password = $credential.GetNetworkCredential().Password
@@ -51,121 +51,123 @@ function Invoke-GradeApi {
 }
 ```
 
-The tables use this helper, payload variables below, and IDs returned by your instance (`$userId`, `$courseId`, `$classId`, `$studentId`, `$enrollmentId`, `$componentId`, `$notificationId`). Each table command illustrates one operation; it is not a script to run every mutation in sequence. Admin-only examples require a superadmin token.
+Tabel memakai helper ini, variabel payload di bawah, dan ID yang dikembalikan instance (`$userId`, `$courseId`, `$classId`, `$studentId`, `$enrollmentId`, `$componentId`, `$notificationId`). Setiap perintah pada tabel menggambarkan satu operasi; seluruh mutasi tidak dimaksudkan untuk dijalankan berurutan sebagai satu script. Contoh khusus admin memerlukan token superadmin.
 
-## Operation inventory
+## Daftar operasi
 
-### Identity and health
+### Identitas dan health
 
-| Method and path | Input | Success | Purpose and example |
+| Method dan path | Input | Sukses | Tujuan dan contoh |
 | --- | --- | --- | --- |
-| `GET /health` | None; public | 200: `{status, db, redis}` | Dependency flags: `Invoke-RestMethod "$apiBase/health"` |
-| `POST /auth/login` | Email/username and password | 200: `TokenResponse` | Login example above |
+| `GET /health` | Tidak ada; publik | 200: `{status, db, redis}` | Flag dependensi: `Invoke-RestMethod "$apiBase/health"` |
+| `POST /auth/login` | Email/username dan password | 200: `TokenResponse` | Contoh login di atas |
 | `POST /auth/refresh` | Refresh token | 200: `TokenResponse` | `$tokens = Invoke-GradeApi POST '/auth/refresh' @{refresh_token=$tokens.refresh_token}` |
 | `GET /auth/me` | Bearer token | 200: `UserResponse` | `Invoke-GradeApi GET '/auth/me'` |
 
-Health returns `status: ok` and HTTP 200 even if a dependency fails; require both booleans to be true.
+Health mengembalikan `status: ok` dan HTTP 200 meskipun dependensi gagal; pastikan kedua boolean bernilai true.
 
-### Accounts: superadmin only
+### Akun: khusus superadmin
 
-| Method and path | Input | Success | Purpose and example |
+| Method dan path | Input | Sukses | Tujuan dan contoh |
 | --- | --- | --- | --- |
-| `POST /admin/users` | `UserCreate` | 201: `UserRead` | Create account: `Invoke-GradeApi POST '/admin/users' $userCreate` |
-| `GET /admin/users` | Optional query `role`, `is_active` | 200: `UserRead[]` | `Invoke-GradeApi GET '/admin/users?role=lecturer&is_active=true'` |
+| `POST /admin/users` | `UserCreate` | 201: `UserRead` | Buat akun: `Invoke-GradeApi POST '/admin/users' $userCreate` |
+| `GET /admin/users` | Query opsional `role`, `is_active` | 200: `UserRead[]` | `Invoke-GradeApi GET '/admin/users?role=lecturer&is_active=true'` |
 | `GET /admin/users/{user_id}` | UUID | 200: `UserRead` | `Invoke-GradeApi GET "/admin/users/$userId"` |
 | `PATCH /admin/users/{user_id}` | `UserUpdate` | 200: `UserRead` | `Invoke-GradeApi PATCH "/admin/users/$userId" $userUpdate` |
-| `DELETE /admin/users/{user_id}` | UUID | 204 | Deactivate, retaining historical relations: `Invoke-GradeApi DELETE "/admin/users/$userId"` |
+| `DELETE /admin/users/{user_id}` | UUID | 204 | Nonaktifkan dengan mempertahankan relasi historis: `Invoke-GradeApi DELETE "/admin/users/$userId"` |
 
-### Courses
+Halaman **Pengguna** (`/users`) untuk superadmin memakai API ini untuk membuat akun, memperbarui profil/role/status/password, dan menonaktifkan akun. Filter daftar dikirim setelah **Terapkan**; pencarian nama/email, sorting, dan pagination berjalan di browser pada array hasil request. Kontrak response tidak pernah menampilkan hash password.
 
-| Method and path | Input | Success | Purpose and example |
+### Mata kuliah
+
+| Method dan path | Input | Sukses | Tujuan dan contoh |
 | --- | --- | --- | --- |
-| `POST /courses` | `CourseCreate` | 201: `CourseRead` | Creator is current user: `Invoke-GradeApi POST '/courses' $courseCreate` |
-| `GET /courses` | None | 200: `CourseRead[]` | Admin: all; lecturer: created or assigned courses. `Invoke-GradeApi GET '/courses'` |
-| `GET /courses/{course_id}` | UUID | 200: `CourseRead` | Creator/admin/assigned lecturer: `Invoke-GradeApi GET "/courses/$courseId"` |
-| `PATCH /courses/{course_id}` | `CourseUpdate` | 200: `CourseRead` | Creator/admin: `Invoke-GradeApi PATCH "/courses/$courseId" $courseUpdate` |
-| `DELETE /courses/{course_id}` | UUID | 204 | Creator/admin, subject to dependencies: `Invoke-GradeApi DELETE "/courses/$courseId"` |
+| `POST /courses` | `CourseCreate` | 201: `CourseRead` | Pembuat adalah pengguna saat ini: `Invoke-GradeApi POST '/courses' $courseCreate` |
+| `GET /courses` | Tidak ada | 200: `CourseRead[]` | Admin: semua; dosen: mata kuliah yang dibuat atau diampu. `Invoke-GradeApi GET '/courses'` |
+| `GET /courses/{course_id}` | UUID | 200: `CourseRead` | Pembuat/admin/dosen pengampu: `Invoke-GradeApi GET "/courses/$courseId"` |
+| `PATCH /courses/{course_id}` | `CourseUpdate` | 200: `CourseRead` | Pembuat/admin: `Invoke-GradeApi PATCH "/courses/$courseId" $courseUpdate` |
+| `DELETE /courses/{course_id}` | UUID | 204 | Pembuat/admin, mengikuti batasan dependensi: `Invoke-GradeApi DELETE "/courses/$courseId"` |
 
-### Classes and rosters
+### Kelas dan roster
 
-Both roles can call these operations. Access to an existing class requires its assigned lecturer or superadmin.
+Kedua role dapat memanggil operasi ini. Akses ke kelas yang sudah ada memerlukan dosen pengampu atau superadmin.
 
-| Method and path | Input | Success | Purpose and example |
+| Method dan path | Input | Sukses | Tujuan dan contoh |
 | --- | --- | --- | --- |
 | `POST /classes` | `ClassCreate` | 201: `ClassRead` | `Invoke-GradeApi POST '/classes' $classCreate` |
-| `GET /classes` | None | 200: `ClassRead[]` | Visible classes: `Invoke-GradeApi GET '/classes'` |
+| `GET /classes` | Tidak ada | 200: `ClassRead[]` | Kelas yang dapat diakses: `Invoke-GradeApi GET '/classes'` |
 | `GET /classes/{class_id}` | UUID | 200: `ClassRead` | `Invoke-GradeApi GET "/classes/$classId"` |
 | `PATCH /classes/{class_id}` | `ClassUpdate` | 200: `ClassRead` | `Invoke-GradeApi PATCH "/classes/$classId" $classUpdate` |
-| `DELETE /classes/{class_id}` | UUID | 204 | Dependencies can block removal: `Invoke-GradeApi DELETE "/classes/$classId"` |
-| `POST /classes/{class_id}/enrollments` | `EnrollmentCreate` | 201: `RosterEntryRead` | Reuse/create profile by NIM: `Invoke-GradeApi POST "/classes/$classId/enrollments" $enrollmentCreate` |
+| `DELETE /classes/{class_id}` | UUID | 204 | Dependensi dapat menghalangi penghapusan: `Invoke-GradeApi DELETE "/classes/$classId"` |
+| `POST /classes/{class_id}/enrollments` | `EnrollmentCreate` | 201: `RosterEntryRead` | Pakai ulang/buat profil berdasarkan NIM: `Invoke-GradeApi POST "/classes/$classId/enrollments" $enrollmentCreate` |
 | `GET /classes/{class_id}/roster` | UUID | 200: `RosterEntryRead[]` | `Invoke-GradeApi GET "/classes/$classId/roster"` |
-| `DELETE /classes/{class_id}/enrollments/{enrollment_id}` | Class/enrollment UUIDs | 204 | `Invoke-GradeApi DELETE "/classes/$classId/enrollments/$enrollmentId"` |
+| `DELETE /classes/{class_id}/enrollments/{enrollment_id}` | UUID kelas/enrollment | 204 | `Invoke-GradeApi DELETE "/classes/$classId/enrollments/$enrollmentId"` |
 
-Superadmins must supply an active lecturer's `lecturer_id` on class creation. Lecturers may omit it and are assigned themselves; they cannot assign another lecturer. Roster mutations are blocked after release. Dependent grading data can also block enrollment removal.
+Superadmin wajib memasok `lecturer_id` dosen aktif saat membuat kelas. Dosen boleh tidak mengirimkannya dan otomatis ditugaskan ke dirinya sendiri; dosen tidak dapat menugaskan dosen lain. Mutasi roster diblokir setelah rilis. Data penilaian yang bergantung pada enrollment juga dapat menghalangi penghapusannya.
 
-### Student directory
+### Direktori mahasiswa
 
-| Method and path | Input | Success | Purpose and example |
+| Method dan path | Input | Sukses | Tujuan dan contoh |
 | --- | --- | --- | --- |
-| `POST /students` | `StudentCreate` | 201: `StudentRead` | Both roles: `Invoke-GradeApi POST '/students' $studentCreate` |
-| `GET /students` | None | 200: `StudentRead[]` | Both roles: `Invoke-GradeApi GET '/students'` |
-| `GET /students/{student_id}` | UUID | 200: `StudentRead` | Both roles: `Invoke-GradeApi GET "/students/$studentId"` |
-| `PATCH /students/{student_id}` | `StudentUpdate` | 200: `StudentRead` | Admin only: `Invoke-GradeApi PATCH "/students/$studentId" $studentUpdate` |
-| `DELETE /students/{student_id}` | UUID | 204 | Admin only; enrolled profiles conflict: `Invoke-GradeApi DELETE "/students/$studentId"` |
+| `POST /students` | `StudentCreate` | 201: `StudentRead` | Kedua role: `Invoke-GradeApi POST '/students' $studentCreate` |
+| `GET /students` | Tidak ada | 200: `StudentRead[]` | Kedua role: `Invoke-GradeApi GET '/students'` |
+| `GET /students/{student_id}` | UUID | 200: `StudentRead` | Kedua role: `Invoke-GradeApi GET "/students/$studentId"` |
+| `PATCH /students/{student_id}` | `StudentUpdate` | 200: `StudentRead` | Khusus admin: `Invoke-GradeApi PATCH "/students/$studentId" $studentUpdate` |
+| `DELETE /students/{student_id}` | UUID | 204 | Khusus admin; profil yang terdaftar pada kelas menghasilkan conflict: `Invoke-GradeApi DELETE "/students/$studentId"` |
 
-### Components, scores, and releases
+### Komponen, skor, dan rilis
 
-These operations require assigned-class access or superadmin. Student history is scoped to released results visible to the caller.
+Operasi ini memerlukan akses dosen pengampu atau superadmin. Riwayat mahasiswa dibatasi pada hasil rilis yang dapat diakses pemanggil.
 
-| Method and path | Input | Success | Purpose and example |
+| Method dan path | Input | Sukses | Tujuan dan contoh |
 | --- | --- | --- | --- |
 | `GET /classes/{class_id}/components` | UUID | 200: `ComponentRead[]` | `Invoke-GradeApi GET "/classes/$classId/components"` |
-| `POST /classes/{class_id}/components` | Nonempty `ComponentCreate[]` | 201: `ComponentRead[]` | Atomic batch: `Invoke-GradeApi POST "/classes/$classId/components" $componentCreate` |
-| `PUT /classes/{class_id}/components` | Nonempty `ComponentWrite[]` | 200: `ComponentRead[]` | Full configuration: `Invoke-GradeApi PUT "/classes/$classId/components" $componentWrite` |
+| `POST /classes/{class_id}/components` | `ComponentCreate[]` tidak kosong | 201: `ComponentRead[]` | Batch atomik: `Invoke-GradeApi POST "/classes/$classId/components" $componentCreate` |
+| `PUT /classes/{class_id}/components` | `ComponentWrite[]` tidak kosong | 200: `ComponentRead[]` | Konfigurasi lengkap: `Invoke-GradeApi PUT "/classes/$classId/components" $componentWrite` |
 | `PATCH /components/{component_id}` | `ComponentUpdate` | 200: `ComponentRead` | `Invoke-GradeApi PATCH "/components/$componentId" $componentUpdate` |
-| `DELETE /components/{component_id}` | UUID | 204 | Remaining configuration must be valid: `Invoke-GradeApi DELETE "/components/$componentId"` |
-| `GET /classes/{class_id}/grades` | UUID | 200: `ClassGradesRead` | Full roster grid: `Invoke-GradeApi GET "/classes/$classId/grades"` |
-| `PUT /enrollments/{enrollment_id}/scores` | Nonempty UUID-to-score/null map | 200: `GradeRead` | Partial update: `Invoke-GradeApi PUT "/enrollments/$enrollmentId/scores" $scorePatch` |
-| `POST /classes/{class_id}/finalize` | No body | 202: `FinalizeRead` | Commit release then enqueue: `Invoke-GradeApi POST "/classes/$classId/finalize"` |
-| `GET /classes/{class_id}/ranking` | UUID | 200: `RankingRead[]` | Stored rankings: `Invoke-GradeApi GET "/classes/$classId/ranking"` |
-| `GET /students/{student_id}/history` | Student UUID | 200: `HistoryRead[]` | Released history: `Invoke-GradeApi GET "/students/$studentId/history"` |
+| `DELETE /components/{component_id}` | UUID | 204 | Konfigurasi yang tersisa harus valid: `Invoke-GradeApi DELETE "/components/$componentId"` |
+| `GET /classes/{class_id}/grades` | UUID | 200: `ClassGradesRead` | Grid roster lengkap: `Invoke-GradeApi GET "/classes/$classId/grades"` |
+| `PUT /enrollments/{enrollment_id}/scores` | Map UUID ke skor/null yang tidak kosong | 200: `GradeRead` | Update parsial: `Invoke-GradeApi PUT "/enrollments/$enrollmentId/scores" $scorePatch` |
+| `POST /classes/{class_id}/finalize` | Tanpa body | 202: `FinalizeRead` | Commit rilis, lalu enqueue: `Invoke-GradeApi POST "/classes/$classId/finalize"` |
+| `GET /classes/{class_id}/ranking` | UUID | 200: `RankingRead[]` | Ranking tersimpan: `Invoke-GradeApi GET "/classes/$classId/ranking"` |
+| `GET /students/{student_id}/history` | UUID mahasiswa | 200: `HistoryRead[]` | Riwayat rilis: `Invoke-GradeApi GET "/students/$studentId/history"` |
 
-Weights must total 100% and include UTS/UAS. PUT configuration retains existing IDs or omits IDs for new components. Individual PATCH/DELETE must also leave a valid full configuration. Finalized grades block score, roster, and component changes. A scored component cannot be deleted; its maximum cannot be lowered below saved scores.
+Total bobot harus 100% dan mencakup UTS/UAS. PUT konfigurasi mempertahankan ID yang sudah ada atau tidak mengirim ID untuk komponen baru. PATCH/DELETE individual juga harus menyisakan konfigurasi lengkap yang valid. Grade final menghalangi perubahan skor, roster, dan komponen. Komponen yang sudah berskor tidak dapat dihapus; nilai maksimumnya tidak dapat diturunkan di bawah skor tersimpan.
 
-For scores, omit IDs to preserve entries, send `null` to clear, and send zero for a real zero. Scores permit at most two decimal places and cannot exceed the component maximum. Finalization requires a nonempty roster and all scores. Ranking ties receive distinct positions ordered by NIM/name.
+Untuk skor, jangan kirim ID agar input dipertahankan, kirim `null` untuk menghapus, dan kirim nol untuk nilai nol yang nyata. Skor mengizinkan maksimal dua angka desimal dan tidak dapat melebihi nilai maksimum komponen. Finalisasi memerlukan roster yang tidak kosong dan seluruh skor lengkap. Ranking seri memperoleh posisi berbeda dengan urutan NIM/nama.
 
-### Dashboard and notification audit
+### Dashboard dan audit notifikasi
 
-| Method and path | Input | Success | Purpose and example |
+| Method dan path | Input | Sukses | Tujuan dan contoh |
 | --- | --- | --- | --- |
-| `GET /dashboard/summary` | None | 200: `DashboardSummaryRead` | Both roles, scoped view: `Invoke-GradeApi GET '/dashboard/summary'` |
-| `GET /admin/notifications` | Optional `status=queued`, `sent`, or `failed` | 200: `NotificationRead[]` | Admin only: `Invoke-GradeApi GET '/admin/notifications?status=failed'` |
-| `POST /admin/notifications/{notification_id}/retry` | No body | 202: `NotificationRead` | Admin retry of unsent record: `Invoke-GradeApi POST "/admin/notifications/$notificationId/retry"` |
+| `GET /dashboard/summary` | Tidak ada | 200: `DashboardSummaryRead` | Kedua role, sesuai cakupan akses: `Invoke-GradeApi GET '/dashboard/summary'` |
+| `GET /admin/notifications` | Opsional `status=queued`, `sent`, atau `failed` | 200: `NotificationRead[]` | Khusus admin: `Invoke-GradeApi GET '/admin/notifications?status=failed'` |
+| `POST /admin/notifications/{notification_id}/retry` | Tanpa body | 202: `NotificationRead` | Retry admin untuk record yang belum terkirim: `Invoke-GradeApi POST "/admin/notifications/$notificationId/retry"` |
 
-Retry rejects sent records, refreshes the student's email from the profile, and prepares a new dispatch generation. HTTP 202 does not confirm delivery.
+Retry menolak record sent, memperbarui email mahasiswa dari profil, dan menyiapkan generasi dispatch baru. HTTP 202 tidak mengonfirmasi pengiriman selesai.
 
-### Downloads
+### Download
 
-These require assigned-class access or superadmin. Pass bearer headers and save binary content to a file.
+Operasi ini memerlukan akses dosen pengampu atau superadmin. Kirim header bearer dan simpan konten biner ke file.
 
 ```powershell
 $downloadHeaders = @{Authorization = "Bearer $($tokens.access_token)"}
 ```
 
-| Method and path | Input | Success | Example |
+| Method dan path | Input | Sukses | Contoh |
 | --- | --- | --- | --- |
-| `GET /reports/student/{enrollment_id}/pdf` | Finalized enrollment UUID | 200: PDF attachment | `Invoke-WebRequest "$apiBase/reports/student/$enrollmentId/pdf" -Headers $downloadHeaders -OutFile student.pdf` |
-| `GET /reports/class/{class_id}/pdf` | Fully finalized class UUID | 200: PDF attachment | `Invoke-WebRequest "$apiBase/reports/class/$classId/pdf" -Headers $downloadHeaders -OutFile class.pdf` |
-| `GET /reports/class/{class_id}/xlsx` | Fully finalized class UUID | 200: XLSX attachment | `Invoke-WebRequest "$apiBase/reports/class/$classId/xlsx" -Headers $downloadHeaders -OutFile class.xlsx` |
+| `GET /reports/student/{enrollment_id}/pdf` | UUID enrollment final | 200: attachment PDF | `Invoke-WebRequest "$apiBase/reports/student/$enrollmentId/pdf" -Headers $downloadHeaders -OutFile student.pdf` |
+| `GET /reports/class/{class_id}/pdf` | UUID kelas yang seluruh nilainya final | 200: attachment PDF | `Invoke-WebRequest "$apiBase/reports/class/$classId/pdf" -Headers $downloadHeaders -OutFile class.pdf` |
+| `GET /reports/class/{class_id}/xlsx` | UUID kelas yang seluruh nilainya final | 200: attachment XLSX | `Invoke-WebRequest "$apiBase/reports/class/$classId/xlsx" -Headers $downloadHeaders -OutFile class.xlsx` |
 
-PDF uses `application/pdf`; XLSX uses `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`. Downloads set `Content-Disposition: attachment` and `Cache-Control: no-store`. Missing renderer dependencies return 503. Regenerate download headers if the token rotates.
+PDF memakai `application/pdf`; XLSX memakai `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`. Download mengatur `Content-Disposition: attachment` dan `Cache-Control: no-store`. Dependensi renderer yang tidak tersedia menghasilkan 503. Buat ulang header download jika token berotasi.
 
-## Payload examples
+## Contoh payload
 
-Use actual UUIDs from your server. These examples define payloads; submit the relevant one using the inventory above. For a new lecturer password, obtain a credential rather than storing it in the document:
+Gunakan UUID aktual dari server. Contoh berikut mendefinisikan payload; kirim payload terkait memakai daftar operasi di atas. Untuk password dosen baru, ambil credential alih-alih menyimpannya dalam dokumen:
 
 ```powershell
-$newLecturer = Get-Credential -Message 'New lecturer email and password'
+$newLecturer = Get-Credential -Message 'Email dan password dosen baru'
 $userCreate = @{
   email = $newLecturer.UserName
   password = $newLecturer.GetNetworkCredential().Password
@@ -175,7 +177,7 @@ $userCreate = @{
 $userUpdate = @{full_name = 'Updated Lecturer'; is_active = $true}
 $courseCreate = @{code='IF101'; name='Algorithms'; credits=3; semester='Ganjil'}
 $courseUpdate = @{name='Introduction to Algorithms'}
-# For admin creation, use a lecturer ID returned by /admin/users.
+# Untuk pembuatan oleh admin, gunakan ID dosen dari /admin/users.
 $classCreate = @{course_id=$courseId; section='A'; academic_year='2026/2027'; lecturer_id=$lecturerId}
 $classUpdate = @{section='B'}
 $studentCreate = @{nim='2026001'; full_name='Example Student'; email='student@example.com'}
@@ -185,54 +187,54 @@ $componentCreate = @(
   @{name='Midterm'; category='uts'; weight='40.00'; max_score='100.00'; order_index=0}
   @{name='Final'; category='uas'; weight='60.00'; max_score='100.00'; order_index=1}
 )
-# Populate this from GET components so existing IDs are retained.
+# Isi dari GET components agar ID existing tetap dipertahankan.
 $componentWrite = @(Invoke-GradeApi GET "/classes/$classId/components" | ForEach-Object {
   @{id=$_.id; name=$_.name; category=$_.category; weight=$_.weight; max_score=$_.max_score; order_index=$_.order_index}
 })
 $componentUpdate = @{name='Renamed assessment'}
 $scorePatch = @{}
 $scorePatch[$componentId] = '80.00'
-# To clear instead: $scorePatch[$componentId] = $null
+# Untuk menghapus skor: $scorePatch[$componentId] = $null
 ```
 
-`UserCreate` requires email, password (6–128 characters), and full name; role defaults to `lecturer` and can be `superadmin`. `CourseCreate` requires code, name, positive integer credits, and semester. `StudentCreate` requires NIM/name with optional email. Enrollment requires NIM and optionally name/email. For a new NIM, an omitted name falls back to NIM.
+`UserCreate` mewajibkan email, password (6–128 karakter), dan nama lengkap; role default adalah `lecturer` dan dapat diisi `superadmin`. `CourseCreate` mewajibkan kode, nama, credits berupa integer positif, dan semester. `StudentCreate` mewajibkan NIM/nama dengan email opsional. Enrollment mewajibkan NIM dan mengizinkan nama/email opsional. Untuk NIM baru, nama yang tidak dikirim memakai NIM sebagai fallback.
 
-Course/class update `null` values retain old fields. Student update `email: null` clears the address. Component PATCH rejects explicit null and unknown fields; component names are at most 100 characters, weights are positive and at most 100, maxima positive, and decimal fields allow two places. See OpenAPI for all field lengths and numeric bounds.
+Nilai `null` pada update mata kuliah/kelas mempertahankan field lama. Update mahasiswa dengan `email: null` menghapus alamat. PATCH komponen menolak null eksplisit dan field yang tidak dikenal; panjang nama komponen maksimal 100 karakter, bobot positif dengan nilai maksimal 100, nilai maksimum positif, dan field desimal mengizinkan dua angka desimal. Lihat OpenAPI untuk seluruh batas panjang field dan nilai numerik.
 
-## Response contracts
+## Kontrak response
 
-| Contract | Fields / composition |
+| Kontrak | Field / komposisi |
 | --- | --- |
 | `UserResponse` | `id`, `email`, `full_name`, `role`, `is_active` |
-| `UserRead` | User profile plus `created_at`, `updated_at`; no password hash |
+| `UserRead` | Profil pengguna ditambah `created_at`, `updated_at`; tanpa hash password |
 | `CourseRead` | `id`, `code`, `name`, `credits`, `semester`, `created_by`, `created_at` |
 | `ClassRead` | `id`, `course_id`, `section`, `lecturer_id`, `academic_year`, `created_at`, `has_finalized_grades` |
-| `StudentRead` | `id`, `nim`, `full_name`, nullable `email`, `created_at` |
-| `RosterEntryRead` | Enrollment `id`, `enrolled_at`, nested `student` |
+| `StudentRead` | `id`, `nim`, `full_name`, `email` nullable, `created_at` |
+| `RosterEntryRead` | Enrollment `id`, `enrolled_at`, objek `student` bersarang |
 | `ComponentRead` | `id`, `class_id`, `name`, `category`, `weight`, `max_score`, `order_index`, `created_at` |
-| `GradeRead` | `id`, `enrollment_id`, `final_score`, `status`, nullable `finalized_at`, `finalized_by`, `release_notified_at` |
-| `ClassGradesRead` | `class_id`, `components`, `grades`; each grade row has `enrollment_id`, `student`, score map, nullable `final_score`, and `status` |
-| `FinalizeRead` | `finalized_count`, `notified` (accepted queue submissions) |
+| `GradeRead` | `id`, `enrollment_id`, `final_score`, `status`, field nullable `finalized_at`, `finalized_by`, `release_notified_at` |
+| `ClassGradesRead` | `class_id`, `components`, `grades`; setiap row grade memiliki `enrollment_id`, `student`, map skor, `final_score` nullable, dan `status` |
+| `FinalizeRead` | `finalized_count`, `notified` (jumlah job yang diterima queue) |
 | `RankingRead` | `rank`, `enrollment_id`, `student`, `final_score` |
-| `HistoryRead` | `grade_id`, `enrollment_id`, nested `course`, JSON key `class`, `final_score`, nullable `rank`/`finalized_at`, component details/scores |
-| `DashboardSummaryRead` | `course_count`, `class_count`, `pending_class_count`, nested `courses`/classes, `recently_released` |
-| `NotificationRead` | `id`, `grade_id`, nullable `student_email`, `status`, nullable `error_message`/`sent_at`, `created_at` |
+| `HistoryRead` | `grade_id`, `enrollment_id`, objek `course` bersarang, key JSON `class`, `final_score`, field nullable `rank`/`finalized_at`, detail komponen/skor |
+| `DashboardSummaryRead` | `course_count`, `class_count`, `pending_class_count`, objek `courses`/kelas bersarang, `recently_released` |
+| `NotificationRead` | `id`, `grade_id`, `student_email` nullable, `status`, field nullable `error_message`/`sent_at`, `created_at` |
 
-Grade status is `draft` or `finalized`. Notification status is `queued`, `sent`, or `failed`. Dashboard class status is `pending` or `released`.
+Status grade adalah `draft` atau `finalized`. Status notification adalah `queued`, `sent`, atau `failed`. Status kelas pada dashboard adalah `pending` atau `released`.
 
-## Errors
+## Error
 
-| HTTP | Meaning |
+| HTTP | Arti |
 | --- | --- |
-| 401 | Missing/invalid token, inactive account, rejected login/refresh |
-| 403 | Role or resource access denied |
-| 404 | Unknown resource or enrollment outside the requested roster |
-| 409 | Duplicate data, dependent records, finalized mutation, repeated release, or sent notification retry |
-| 422 | Invalid schema, component configuration, out-of-range/missing scores, or missing credentials |
-| 429 | Login limiter exceeded |
-| 503 | Required report renderer unavailable |
+| 401 | Token tidak ada/tidak valid, akun nonaktif, login/refresh ditolak |
+| 403 | Akses role atau resource ditolak |
+| 404 | Resource tidak dikenal atau enrollment di luar roster yang diminta |
+| 409 | Data duplikat, record dependen, mutasi pada hasil final, rilis berulang, atau retry notification sent |
+| 422 | Schema atau konfigurasi komponen tidak valid, skor di luar rentang/belum lengkap, atau credential tidak ada |
+| 429 | Batas login limiter terlampaui |
+| 503 | Renderer laporan yang diperlukan tidak tersedia |
 
-Service failures normally use `{ "detail": "message" }`. Pydantic failures use an array of field errors under `detail`. Missing finalization scores return a structured detail:
+Kegagalan service umumnya memakai `{ "detail": "message" }`. Kegagalan Pydantic memakai array error field di bawah `detail`. Skor finalisasi yang belum lengkap mengembalikan detail terstruktur:
 
 ```json
 {
@@ -243,4 +245,36 @@ Service failures normally use `{ "detail": "message" }`. Pydantic failures use a
 }
 ```
 
-After a finalization timeout, read `/classes/{class_id}/grades` before retrying: loss of the response does not imply rollback. A successful release can coexist with enqueue/delivery failures, which are handled through notification audit/retry.
+Setelah timeout finalisasi, baca `/classes/{class_id}/grades` sebelum retry: response yang tidak diterima tidak berarti transaksi sudah di-rollback. Rilis yang berhasil dapat terjadi bersamaan dengan kegagalan enqueue/pengiriman, yang ditangani melalui audit/retry notifikasi.
+
+## CLI seeder
+
+Entry point publik adalah `python -m app.seeding` dari `backend/` dengan extra `seed` terpasang. CLI ini tidak menambahkan endpoint HTTP. Lihat [seeding](seeding.md) untuk setup host/container dan credential.
+
+| Perintah | Input | Output dan efek samping |
+| --- | --- | --- |
+| `plan` | Flag dataset/konfigurasi di bawah | Membangun graph tanpa akses database; menulis manifest JSON serta mencetak seed, fingerprint, jumlah row per tabel, dan path artefak |
+| `apply` | Flag yang sama, `DATABASE_URL`/`APP_ENV` aman yang dipilih eksplisit, `SMTP_HOST` kosong, dan `SEED_PASSWORD` | Menambahkan dataset secara atomik atau melaporkan anchor yang sudah ada; mencetak status/jumlah row/ID hilang per tabel; menulis status manifest |
+| `inspect` | Flag dataset/konfigurasi yang sama dan environment aman; tidak memerlukan password seed | Membaca ID database yang diharapkan dan melaporkan row hilang; memperbarui metadata observasi pada manifest lokal |
+
+```powershell
+python -m app.seeding plan --dataset review-v3 --profile manual --seed 20261105
+python -m app.seeding apply --dataset review-v3 --profile manual --seed 20261105
+python -m app.seeding inspect --dataset review-v3 --profile manual --seed 20261105
+```
+
+Contoh `apply`/`inspect` mengasumsikan database development tujuan sudah dipilih dan environment sudah dikonfigurasi sesuai [seeding](seeding.md#apply-dan-inspect-di-host).
+
+| Flag | Kontrak |
+| --- | --- |
+| `--dataset` | Wajib; `[a-z0-9][a-z0-9-]{0,39}` |
+| `--profile` | `manual` (default) atau `light-load` |
+| `--seed` | Integer; jika tidak diisi, menghasilkan seed acak yang dicetak pada hasil |
+| `--min-samples`, `--max-samples` | Override opsional, dengan `5 <= min <= max`; gunakan rentang seukuran profile untuk graph kelas berbatas |
+| `--max-rows` | Batas row preflight opsional, dari 1 sampai 100.000 |
+| `--reference-time` | Waktu ISO-8601 opsional dengan timezone; default `2026-01-01T00:00:00Z` |
+| `--output-dir` | Root artefak relatif terhadap working directory proses; default `.artifacts/seeding` |
+
+Profile membuat 5–15 (`manual`) atau 10–30 (`light-load`) sample per case yang dihasilkan, dengan batas default 25.000/100.000 row. Batas graph adalah 5–15 mata kuliah, 2–5 kelas per mata kuliah, dan 5–15 mahasiswa terdaftar per kelas. Kapasitas case dapat membatasi jumlah minimum mata kuliah. Fingerprint mencakup versi generator dan dependensi; gunakan parameter yang sama untuk inspect dataset, dan gunakan nama baru saat parameter berubah.
+
+Perintah yang berhasil menghasilkan exit code 0. Kegagalan validasi/environment/fingerprint yang ditangani mencetak `error: ...` dan menghasilkan exit code 2. Kegagalan database/driver dapat memunculkan exception. Rerun tidak mereset record, password, atau edit manual. `inspect` memeriksa keberadaan record, bukan membandingkan setiap field. Konstruksi maupun apply seed tidak memublikasikan task email; row notification yang dihasilkan merupakan status simulasi.

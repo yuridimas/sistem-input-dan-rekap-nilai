@@ -1,75 +1,93 @@
-# Technical decisions
+# Keputusan teknis
 
-These choices are visible in the current implementation. Historical context is archived in [the design specification](superpowers/specs/2026-10-24-sistem-input-rekap-nilai-design.md).
+Pilihan berikut terlihat pada implementasi saat ini. Konteks historis diarsipkan dalam [spesifikasi desain](superpowers/specs/2026-10-24-sistem-input-rekap-nilai-design.md).
 
-## HTTP, business, and persistence layers
+## Lapisan HTTP, bisnis, dan persistence
 
-**Implemented:** Routers bind Pydantic contracts, services enforce access and grading rules, repositories perform SQLAlchemy operations, and models/Alembic describe schema. See [`backend/app/`](../backend/app/).
+**Implementasi:** Router mengikat kontrak Pydantic, service menerapkan aturan akses dan penilaian, repository menjalankan operasi SQLAlchemy, dan model/Alembic mendeskripsikan schema. Lihat [`backend/app/`](../backend/app/).
 
-**Trade-off:** Shared validation avoids repeating grading rules in handlers. Transaction ownership varies: grading services coordinate multi-table commits, while some CRUD repositories commit directly. Inspect those boundaries before combining calls.
+**Trade-off:** Validasi bersama menghindari pengulangan aturan penilaian di handler. Kepemilikan transaksi bervariasi: service penilaian mengoordinasikan commit beberapa tabel, sedangkan sebagian repository CRUD melakukan commit langsung. Periksa batas tersebut sebelum menggabungkan pemanggilan.
 
-## PostgreSQL consistency
+## Konsistensi PostgreSQL
 
-**Implemented:** Async SQLAlchemy/asyncpg, foreign keys, unique constraints, numeric columns, and PostgreSQL locks. A class lock serializes component/roster changes, score writes, and release. Ranking uses a window function.
+**Implementasi:** SQLAlchemy/asyncpg async, foreign key, unique constraint, kolom numerik, dan lock PostgreSQL. Lock kelas mengurutkan perubahan komponen/roster, penyimpanan skor, dan rilis. Ranking memakai window function.
 
-**Trade-off:** Persistence and concurrency tests need PostgreSQL; SQLite does not exercise these dialect-specific semantics. The comment checker also queries PostgreSQL metadata.
+**Trade-off:** Pengujian persistence dan concurrency memerlukan PostgreSQL; SQLite tidak menguji semantik yang khusus untuk dialect ini. Pemeriksa komentar juga melakukan query metadata PostgreSQL.
 
-## Exact arithmetic
+## Aritmetika eksak
 
-**Implemented:** [`calculate_final_score`](../backend/app/services/grade.py) converts decimal inputs to exact fractions, then rounds half-up to two places. Missing draft entries contribute zero with full weights retained.
+**Implementasi:** [`calculate_final_score`](../backend/app/services/grade.py) mengonversi input Decimal menjadi pecahan eksak, lalu melakukan pembulatan half-up ke dua angka desimal. Input draft yang belum diisi menyumbang nol dengan bobot penuh tetap dipertahankan.
 
-**Trade-off:** Repeating division cannot shift a half-cent rounding boundary. Draft totals are useful during entry, but missing scores must remain distinct from real zeroes before release.
+**Trade-off:** Pembagian berulang tidak menggeser batas pembulatan setengah sen. Total draft berguna selama input, tetapi skor yang belum diisi harus tetap dibedakan dari nilai nol sebelum rilis.
 
-## Complete configuration and locked releases
+## Konfigurasi lengkap dan penguncian rilis
 
-**Implemented:** Weights total 100% with UTS/UAS; batch create/replacement supports simultaneous weight changes. Finalization blocks score, component, and roster mutation. Scored components cannot be deleted or reduced below stored scores.
+**Implementasi:** Total bobot 100% dengan UTS/UAS; create/replacement batch mendukung perubahan beberapa bobot sekaligus. Finalisasi menghalangi mutasi skor, komponen, dan roster. Komponen yang sudah berskor tidak dapat dihapus atau dikurangi nilai maksimumnya di bawah skor tersimpan.
 
-**Trade-off:** Published calculations retain assessment inputs. The API has no unfinalize flow. Course/class/student descriptive metadata is not stored as a separate immutable historical snapshot.
+**Trade-off:** Perhitungan yang dipublikasikan mempertahankan input penilaian. API tidak memiliki alur unfinalize. Metadata deskriptif mata kuliah/kelas/mahasiswa tidak disimpan sebagai snapshot historis immutable yang terpisah.
 
-## Persisted unique rankings
+## Penyimpanan ranking unik
 
-**Implemented:** [`repositories/ranking.py`](../backend/app/repositories/ranking.py) stores `row_number` ordered by score descending, NIM ascending, then name ascending.
+**Implementasi:** [`repositories/ranking.py`](../backend/app/repositories/ranking.py) menyimpan `row_number` dengan urutan skor menurun, NIM menaik, kemudian nama menaik.
 
-**Trade-off:** Equal totals have distinct positions. Reads return the release ranking rather than recalculating on every request.
+**Trade-off:** Total yang sama memperoleh posisi berbeda. Pembacaan mengembalikan ranking saat rilis, bukan menghitung ulang pada setiap request.
 
-## Commit release before sending email
+## Commit rilis sebelum pengiriman email
 
-**Implemented:** Grades, rankings, and notification records commit before Redis publication. Celery handles delivery, persistent audit supports recovery, and dispatch tokens distinguish attempts.
+**Implementasi:** Grade, ranking, dan record notification di-commit sebelum publikasi Redis. Celery menangani pengiriman, audit persisten mendukung pemulihan, dan dispatch token membedakan percobaan.
 
-**Trade-off:** Broker failure does not undo released grades. HTTP 202 means queued work, not delivery. Unsent records can be retried by an admin. Database commit, enqueue, SMTP, and delivery acknowledgement remain separate failure boundaries; this is not a transactional outbox or an exactly-once mail protocol.
+**Trade-off:** Kegagalan broker tidak membatalkan grade yang sudah dirilis. HTTP 202 berarti pekerjaan masuk antrean, bukan bukti pengiriman selesai. Record yang belum terkirim dapat di-retry oleh admin. Commit database, enqueue, SMTP, dan pencatatan keberhasilan pengiriman tetap memiliki batas kegagalan terpisah; implementasi ini bukan transactional outbox atau protokol email exactly-once.
 
-## Configurable mock SMTP
+## Mock SMTP yang dapat dikonfigurasi
 
-**Implemented:** Empty `SMTP_HOST` selects logging transport; real SMTP supports STARTTLS, SSL, or plain transport. See [`mailer.py`](../backend/app/services/mailer.py).
+**Implementasi:** `SMTP_HOST` kosong memilih transport logging; SMTP nyata mendukung STARTTLS, SSL, atau transport plain. Lihat [`mailer.py`](../backend/app/services/mailer.py).
 
-**Trade-off:** Local development needs no mail server, but mock success still produces `sent`. Check transport configuration when interpreting audit records.
+**Trade-off:** Development lokal tidak memerlukan server email, tetapi keberhasilan mock tetap menghasilkan status `sent`. Periksa konfigurasi transport saat menafsirkan record audit.
 
-## JWT and database identity checks
+## JWT dan pemeriksaan identitas database
 
-**Implemented:** bcrypt, typed access/refresh JWTs, refresh rotation, and an active-user database lookup on authenticated requests. Axios coordinates refresh; Zustand persists tokens and reloads the profile.
+**Implementasi:** bcrypt, JWT access/refresh bertipe, rotasi refresh, dan pencarian akun aktif di database pada request terautentikasi. Axios mengoordinasikan refresh; Zustand menyimpan token dan memuat ulang profil.
 
-**Trade-off:** Deactivation/current role are checked server-side. Used refresh identifiers live in a per-process in-memory set, so replay rejection is lost on restart and not shared across API workers. Browser token storage is part of the current design.
+**Trade-off:** Deaktivasi/role terkini diperiksa di server. Identifier refresh yang sudah dipakai berada dalam set in-memory per proses, sehingga penolakan replay hilang saat restart dan tidak dibagikan antar-worker API. Penyimpanan token di browser merupakan bagian dari desain saat ini.
 
-## Dedicated draft state
+## State draft khusus
 
-**Implemented:** [`draft.ts`](../frontend/src/features/grades/draft.ts) tracks edits/saves independently of TanStack Query snapshots. Its lifecycle spans class tabs; navigation/release coordinate pending work.
+**Implementasi:** [`draft.ts`](../frontend/src/features/grades/draft.ts) melacak edit/penyimpanan secara terpisah dari snapshot TanStack Query. Lifecycle-nya mencakup tab kelas; navigasi/rilis mengoordinasikan pekerjaan tertunda.
 
-**Trade-off:** Save acknowledgements do not overwrite newer typing. Server configuration changes can pause editing for reconciliation. Pending edits are in memory and should be saved before reload/exit.
+**Trade-off:** Acknowledgement penyimpanan tidak menimpa input yang lebih baru. Perubahan konfigurasi server dapat menjeda editor untuk rekonsiliasi. Edit tertunda tersimpan di memori dan harus disimpan sebelum reload/keluar.
 
-## Server-rendered reports
+## Tabel data bersama di client
 
-**Implemented:** Jinja2/WeasyPrint PDF and openpyxl XLSX run in threads. Templates autoescape, PDF external fetches are blocked, XLSX text is explicit string data, and downloads use `no-store`.
+**Implementasi:** [`components/data-table/`](../frontend/src/components/data-table/) membungkus TanStack Table untuk sorting dan pagination. Halaman fitur mengelola pencarian dan filter server. Filter pengguna/notifikasi menunggu **Terapkan**, sedangkan pencarian lokal memproses daftar hasil request. Halaman pengguna mendukung create/update dan deaktivasi akun melalui API admin yang sudah ada.
 
-**Trade-off:** Reports use authorized server data, but PDF needs native libraries/fonts. Missing dependencies return 503. Class reports require all roster results final.
+**Trade-off:** Kontrol tabel yang konsisten tidak memerlukan endpoint pagination baru. Browser memuat seluruh array hasil filter, sehingga ukuran halaman tabel membatasi row yang dirender, bukan jumlah data yang ditransfer server. Kartu ringkasan pengguna menghitung record hasil filter server sebelum pencarian lokal.
 
-## Runtime profiles and proxy
+## Graph seed append-only yang dapat direproduksi
 
-**Implemented:** Local services use bind mounts/dev servers. Deployment adds a one-shot migration dependency, static assets, dedicated database volume, and Nginx. Different project names separate staging/production resources.
+**Implementasi:** [`app/seeding/`](../backend/app/seeding/) memakai dependensi Polyfactory/Faker opsional dengan versi tetap, RNG berbasis seed, ID UUIDv5, reference time tetap, dan fingerprint konfigurasi. Profile menghasilkan beberapa contoh per case dengan jumlah mata kuliah/kelas/roster berbatas. Apply dataset mengambil advisory lock dan memeriksa anchor sebelum menulis; rerun mempertahankan data dan edit manual yang sudah ada.
 
-**Trade-off:** Local migration is explicit. Deployment API URL `/api` is fixed at frontend build time, and TLS requires an external proxy. FastAPI currently lacks a deployment `root_path`; Swagger's schema request misses the prefix although `/api/openapi.json` is available.
+**Trade-off:** Skenario baru memerlukan nama dataset baru, bukan reset data milik penguji human. Reproduksi bergantung pada seed, konfigurasi, versi generator, dan versi dependensi. ID serta atribut yang direncanakan bersifat deterministik; hash password dengan salt dan default server tidak dijanjikan identik per byte. Profile `light-load` menyediakan sample data dan target request; repository tidak mencakup load runner atau jaminan performa berdasarkan pengukuran.
 
-## Health flags
+## Target database pengujian eksplisit
 
-**Implemented:** [`health.py`](../backend/app/routers/health.py) returns HTTP success with `db`/`redis` booleans; the deployment API probe checks both.
+**Implementasi:** [`tests/support/database_guard.py`](../backend/tests/support/database_guard.py) mewajibkan `TEST_DATABASE_URL`, `TEST_REDIS_URL`, dan `TEST_DATABASE_DISPOSABLE=1`, memvalidasi suffix database PostgreSQL `_test`, serta mengalihkan settings aplikasi sebelum import runtime database/auth/task.
 
-**Trade-off:** HTTP status and `status: ok` alone are insufficient for readiness.
+**Trade-off:** Tests tidak dapat diam-diam memakai `.env` developer sebagai fallback. Suffix dan flag eksplisit merupakan deklarasi operator bahwa resource bersifat disposable, bukan bukti server terisolasi; setup Docker yang didokumentasikan menyediakan layanan terpisah. Dataset persisten yang dipakai human berada di luar target pytest.
+
+## Laporan yang dirender server
+
+**Implementasi:** PDF Jinja2/WeasyPrint dan XLSX openpyxl dijalankan dalam thread. Template memakai autoescape, pengambilan resource eksternal PDF diblokir, teks XLSX dinyatakan sebagai data string, dan download memakai `no-store`.
+
+**Trade-off:** Laporan memakai data server yang sudah diotorisasi, tetapi PDF memerlukan library/font native. Dependensi yang tidak tersedia menghasilkan 503. Laporan kelas mewajibkan seluruh hasil pada roster sudah final.
+
+## Profile runtime dan proxy
+
+**Implementasi:** Layanan lokal memakai bind mount/dev server. Deployment menambahkan dependensi migration satu kali, aset statis, volume database khusus, dan Nginx. Project name berbeda memisahkan resource staging/production.
+
+**Trade-off:** Migration lokal dijalankan eksplisit. URL API deployment `/api` ditetapkan saat build frontend, dan TLS memerlukan proxy eksternal. FastAPI saat ini tidak memiliki `root_path` deployment; request schema Swagger melewatkan prefix meskipun `/api/openapi.json` tersedia.
+
+## Flag health
+
+**Implementasi:** [`health.py`](../backend/app/routers/health.py) mengembalikan HTTP sukses dengan boolean `db`/`redis`; probe API deployment memeriksa keduanya.
+
+**Trade-off:** Status HTTP dan `status: ok` saja tidak cukup untuk membuktikan readiness.

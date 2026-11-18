@@ -1,6 +1,35 @@
-# Development Backend
+# Pengembangan Backend
 
 Backend memakai FastAPI, Pydantic, SQLAlchemy async, PostgreSQL, Celery, dan Redis. Untuk stack Docker lengkap, mulai dari [README utama](../README.md).
+
+## Dokumentasi
+
+| Panduan | Isi |
+| --- | --- |
+| [Arsitektur](../docs/architecture.md) | Lapisan aplikasi, relasi data, dan alur finalisasi |
+| [Struktur repository](../docs/structure.md) | File, direktori, dan tanggung jawab modul |
+| [Instalasi](../docs/installation.md) | Runtime, environment, dan pilihan Docker/host |
+| [API](../docs/api.md) | Endpoint, payload, response, error, dan CLI seeder |
+| [Testing](../docs/testing.md) | Database disposable dan cakupan tests |
+| [Seeder persisten](../docs/seeding.md) | Dataset manual, pemetaan kasus, dan perintah Docker |
+| [Deployment](../docs/deployment.md) | Profile staging/production dan pemeriksaan layanan |
+
+## Arsitektur dan struktur modul
+
+Router mengikat request/response Pydantic dan meneruskan aturan bisnis ke services. Repositories menjalankan query SQLAlchemy, sedangkan models dan Alembic menjaga schema PostgreSQL. Finalisasi menyimpan grades, rankings, dan notification audit sebelum mengantrekan task Celery melalui Redis; kegagalan antrean tidak membatalkan nilai yang sudah final.
+
+| Lokasi | Tanggung jawab |
+| --- | --- |
+| `app/main.py`, `config.py`, `database.py` | Komposisi API, konfigurasi, dan session async |
+| `app/routers/`, `schemas/` | Kontrak HTTP dan validasi field |
+| `app/services/`, `repositories/`, `models/` | Aturan akses/penilaian, persistence, dan tabel |
+| `app/tasks/`, `celery_app.py` | Pengiriman notifikasi di worker |
+| `app/templates/` | Template laporan PDF; XLSX dirakit oleh service reports |
+| `app/seeding/` | CLI, generator graph, manifest, dan persistence dataset manual |
+| `alembic/versions/` | Migration database |
+| `tests/`, `tests/support/` | Tests API/persistence serta guard target disposable |
+
+Python minimal 3.11 ditentukan oleh `pyproject.toml`. Extra `dev` memasang pytest dan tooling laporan untuk tests; extra `seed` memasang Polyfactory dan Faker. Image runtime memasang package dasar serta dependency native PDF, sehingga extra tersebut perlu dipasang terpisah bila menjalankan tests atau seeder di container.
 
 ## API di host
 
@@ -56,6 +85,8 @@ celery -A app.celery_app:celery_app worker --loglevel=info
 
 Pada mode mock, worker mencatat pengiriman di log tanpa menghubungi SMTP. Status `sent` pada mode ini bukan bukti email nyata diterima. `notified` pada respons finalisasi menghitung task yang diterima antrean. Superadmin dapat memantau dan mengulang pengiriman melalui halaman Notifikasi.
 
+Halaman Notifikasi dibuka dari ikon bell di header. UI menyediakan retry untuk record `failed`; endpoint retry juga menerima status unsent lain sesuai aturan service. Record `sent` menolak retry.
+
 ## Migration dan pemeriksaan schema
 
 Dengan virtual environment aktif, jalankan dari **`backend/` menggunakan PowerShell** pada database tujuan yang sudah dipilih:
@@ -73,6 +104,18 @@ alembic revision --autogenerate -m "describe schema change"
 ```
 
 Tinjau revision sebelum menjalankan `upgrade`. Pertahankan komentar tabel/kolom berbahasa Indonesia dan jangan mengubah migration yang sudah diterapkan. `verify_comments.py` memeriksa metadata tabel/kolom pada schema PostgreSQL `public`, bukan komentar source code.
+
+## Seeder untuk pengujian manual
+
+Bootstrap `app.services.seed.seed_superadmin` hanya menyiapkan akun awal. CLI `python -m app.seeding` menyiapkan dataset akademik tambahan untuk pengujian manual dan sample positif/negatif. Dari **`backend/`** dengan extra `seed` terpasang, buat rencana tanpa koneksi database:
+
+```powershell
+python -m app.seeding plan --dataset backend-review-v3 --profile manual --seed 20261105
+```
+
+Manifest berada di `.artifacts/seeding/<dataset>/manifest.json` relatif working directory; perintah di atas menulis ke `backend/.artifacts/seeding/` pada host. Generator versi 3 membatasi graph pada 5–15 mata kuliah, 2–5 kelas per mata kuliah, dan 5–15 mahasiswa terdaftar per kelas. Profile `manual` membuat 5–15 sample per kasus dengan batas 25.000 row; `light-load` membuat 10–30 sample dengan batas 100.000 row.
+
+`apply` menambahkan dataset pada database development yang dipilih eksplisit melalui `DATABASE_URL`, memerlukan `APP_ENV=development` atau `local`, `SEED_PASSWORD`, dan SMTP nonaktif. Rerun mempertahankan dataset dan edit manual; pakai nama dataset baru untuk initial state baru. `inspect` memeriksa keberadaan ID tanpa memperbaiki data, lalu memperbarui observasi dalam manifest. Ikuti [panduan seeder](../docs/seeding.md) untuk perintah apply/inspect di host dan Docker, penyimpanan artefak, serta pemetaan aktor/kasus.
 
 ## Menjalankan tests pada database disposable
 
@@ -117,7 +160,7 @@ python scripts/verify_comments.py
 python -m pytest
 ```
 
-Guard `tests/conftest.py` requires the three `TEST_*` variables above and redirects application connections to them before loading runtime modules. For local host runs, use the same variables with a disposable PostgreSQL database whose name ends in `_test`; never point them at the manual development database.
+Guard `tests/conftest.py` mewajibkan tiga variabel `TEST_*` di atas dan mengalihkan koneksi aplikasi sebelum memuat runtime modules. Untuk menjalankan tests di host, gunakan variabel yang sama dengan alamat PostgreSQL disposable yang nama databasenya berakhiran `_test`; jangan arahkan ke database development untuk pengujian manual. Guard memvalidasi konfigurasi eksplisit dan urutan import, tetapi operator tetap bertanggung jawab menyediakan resource disposable.
 
 Panduan untuk membuat dan memeriksa dataset manual append-only, termasuk variasi kasus dan pemetaan multi-mata-kuliah, ada di [panduan seeder](../docs/seeding.md). Jangan arahkan pytest ke database yang digunakan human untuk pengujian manual.
 

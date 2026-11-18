@@ -1,6 +1,6 @@
-# Repository structure
+# Struktur repository
 
-The tree lists versioned project files and the generated guides. Dependency folders, virtual environments, caches, build output, Git internals, and actual environment files are excluded.
+Tree berikut mencantumkan file proyek dan panduan dokumentasi. Folder dependensi, virtual environment, cache, hasil build, internal Git, serta file environment aktual tidak disertakan.
 
 ```text
 .
@@ -73,6 +73,14 @@ The tree lists versioned project files and the generated guides. Dependency fold
 |   |   |   |-- scores.py
 |   |   |   |-- student.py
 |   |   |   `-- user.py
+|   |   |-- seeding/
+|   |   |   |-- __init__.py
+|   |   |   |-- __main__.py
+|   |   |   |-- config.py
+|   |   |   |-- dataset.py
+|   |   |   |-- factories.py
+|   |   |   |-- manifest.py
+|   |   |   `-- scenarios.py
 |   |   |-- services/
 |   |   |   |-- __init__.py
 |   |   |   |-- auth.py
@@ -108,6 +116,10 @@ The tree lists versioned project files and the generated guides. Dependency fold
 |   |-- scripts/
 |   |   `-- verify_comments.py
 |   |-- tests/
+|   |   |-- support/
+|   |   |   |-- __init__.py
+|   |   |   |-- database_guard.py
+|   |   |   `-- seed_data.py
 |   |   |-- __init__.py
 |   |   |-- conftest.py
 |   |   |-- test_academic_ui.py
@@ -127,7 +139,12 @@ The tree lists versioned project files and the generated guides. Dependency fold
 |   |   |-- test_reports.py
 |   |   |-- test_score_clearing.py
 |   |   |-- test_scores.py
+|   |   |-- test_seed_cli.py
+|   |   |-- test_seed_generation.py
+|   |   |-- test_seed_persistence.py
+|   |   |-- test_seed_scenarios.py
 |   |   |-- test_students.py
+|   |   |-- test_test_database_guard.py
 |   |   |-- test_user_model.py
 |   |   |-- test_users.py
 |   |   `-- test_verify_comments.py
@@ -154,14 +171,24 @@ The tree lists versioned project files and the generated guides. Dependency fold
 |   |   |   |-- 2026-10-26-analytics-progress.md
 |   |   |   |-- 2026-10-26-deployment-progress.md
 |   |   |   |-- 2026-10-26-export-notifications-progress.md
-|   |   |   `-- 2026-10-26-final-validation-progress.md
+|   |   |   |-- 2026-10-26-final-validation-progress.md
+|   |   |   |-- 2026-11-05-dummy-seeding.md
+|   |   |   |-- 2026-11-05-frontend-data-table-dashboard-session-ui.md
+|   |   |   |-- 2026-11-05-multicourse-seeding.md
+|   |   |   |-- 2026-11-05-users-page.md
+|   |   |   |-- 2026-11-11-course-class-index-flow.md
+|   |   |   `-- 2026-11-11-feature-index-page-standardization.md
 |   |   `-- specs/
-|   |       `-- 2026-10-24-sistem-input-rekap-nilai-design.md
+|   |       |-- 2026-10-24-sistem-input-rekap-nilai-design.md
+|   |       |-- 2026-11-05-dummy-seeding-design.md
+|   |       |-- 2026-11-05-users-page-design.md
+|   |       `-- 2026-11-11-course-class-index-design.md
 |   |-- api.md
 |   |-- architecture.md
 |   |-- decisions.md
 |   |-- deployment.md
 |   |-- installation.md
+|   |-- seeding.md
 |   |-- structure.md
 |   |-- testing.md
 |   `-- usage.md
@@ -175,6 +202,12 @@ The tree lists versioned project files and the generated guides. Dependency fold
 |   |   |   |-- react.svg
 |   |   |   `-- vite.svg
 |   |   |-- components/
+|   |   |   |-- data-table/
+|   |   |   |   |-- DataTable.test.tsx
+|   |   |   |   |-- DataTable.tsx
+|   |   |   |   |-- DataTablePagination.tsx
+|   |   |   |   |-- DataTableToolbar.tsx
+|   |   |   |   `-- index.ts
 |   |   |   |-- ui/
 |   |   |   |   |-- alert.tsx
 |   |   |   |   |-- badge.tsx
@@ -189,9 +222,13 @@ The tree lists versioned project files and the generated guides. Dependency fold
 |   |   |   |   |-- skeleton.tsx
 |   |   |   |   |-- table.tsx
 |   |   |   |   `-- tabs.tsx
+|   |   |   |-- Layout.test.tsx
 |   |   |   |-- Layout.tsx
+|   |   |   |-- PageBreadcrumbs.test.tsx
+|   |   |   |-- PageBreadcrumbs.tsx
 |   |   |   |-- PlaceholderPage.tsx
 |   |   |   |-- ProtectedRoute.tsx
+|   |   |   |-- SessionProfile.tsx
 |   |   |   `-- Sidebar.tsx
 |   |   |-- features/
 |   |   |   |-- academic/
@@ -213,17 +250,27 @@ The tree lists versioned project files and the generated guides. Dependency fold
 |   |   |   |-- classes/
 |   |   |   |   |-- ClassDetailPage.tsx
 |   |   |   |   |-- ClassDialog.tsx
+|   |   |   |   |-- Roster.test.tsx
 |   |   |   |   `-- Roster.tsx
 |   |   |   |-- components/
 |   |   |   |   `-- ComponentEditor.tsx
 |   |   |   |-- courses/
+|   |   |   |   |-- CourseClassesTable.test.tsx
+|   |   |   |   |-- CourseClassesTable.tsx
+|   |   |   |   |-- CourseClassFlow.test.tsx
+|   |   |   |   |-- CourseDetailPage.test.tsx
 |   |   |   |   |-- CourseDetailPage.tsx
 |   |   |   |   |-- CourseDialog.tsx
+|   |   |   |   |-- CoursesPage.test.tsx
 |   |   |   |   `-- CoursesPage.tsx
 |   |   |   |-- dashboard/
 |   |   |   |   |-- api.ts
 |   |   |   |   |-- CourseOverview.tsx
-|   |   |   |   `-- DashboardPage.tsx
+|   |   |   |   |-- DashboardPage.test.tsx
+|   |   |   |   |-- DashboardPage.tsx
+|   |   |   |   |-- DashboardWidgets.test.tsx
+|   |   |   |   |-- RecentReleases.tsx
+|   |   |   |   `-- SummaryCards.tsx
 |   |   |   |-- grades/
 |   |   |   |   |-- draft.test.ts
 |   |   |   |   |-- draft.ts
@@ -240,11 +287,21 @@ The tree lists versioned project files and the generated guides. Dependency fold
 |   |   |   |   |-- download.ts
 |   |   |   |   |-- ReportDownloadButton.tsx
 |   |   |   |   `-- StudentReportList.tsx
-|   |   |   `-- students/
-|   |   |       |-- StudentDialog.tsx
-|   |   |       `-- StudentsPage.tsx
+|   |   |   |-- students/
+|   |   |   |   |-- StudentDialog.tsx
+|   |   |   |   |-- StudentsPage.test.tsx
+|   |   |   |   `-- StudentsPage.tsx
+|   |   |   |-- users/
+|   |   |   |   |-- types.ts
+|   |   |   |   |-- UserDialog.tsx
+|   |   |   |   |-- UsersPage.test.tsx
+|   |   |   |   |-- UsersPage.tsx
+|   |   |   |   `-- UsersSummary.tsx
+|   |   |   `-- AGENTS.md
 |   |   |-- lib/
 |   |   |   |-- api.ts
+|   |   |   |-- navigation.test.ts
+|   |   |   |-- navigation.ts
 |   |   |   `-- utils.ts
 |   |   |-- stores/
 |   |   |   `-- authStore.ts
@@ -276,47 +333,54 @@ The tree lists versioned project files and the generated guides. Dependency fold
 |-- .env.example
 |-- .env.prod.example
 |-- .env.staging.example
+|-- .env.test.example
 |-- .gitignore
 |-- AGENTS.md
 |-- docker-compose.yml
+|-- package.json
+|-- pnpm-lock.yaml
 `-- README.md
-
 ```
 
-## Responsibilities and boundaries
+## Tanggung jawab dan batas lapisan
 
-| Location | Responsibility | Boundary |
+| Lokasi | Tanggung jawab | Batas |
 | --- | --- | --- |
-| `backend/app/main.py` | Compose FastAPI, middleware, lifespan, routers | Keep grading and persistence rules in lower layers. |
-| `backend/app/config.py` | Cached Pydantic settings | Read environment here instead of scattering defaults. |
-| `backend/app/database.py` | Async engine, session factory, request dependency | Request session does not automatically commit. |
-| `backend/app/dependencies.py` | JWT identity, active account, role dependencies | Resource ownership is checked by services. |
-| `backend/app/routers/` | HTTP adapters and status codes | Delegate business rules and queries. |
-| `backend/app/schemas/` | Request/response contracts and field constraints | Cross-record/database validation belongs in services. |
-| `backend/app/services/` | Access rules, grading, release, reports, mail transport | Inspect repository commit behavior when composing transactions. |
-| `backend/app/repositories/` | SQLAlchemy query/persistence operations | Avoid duplicating business rules across repositories. |
-| `backend/app/models/` | Tables, foreign keys, constraints, Indonesian metadata comments | Schema changes also require Alembic migrations. |
-| `backend/app/tasks/` and `celery_app.py` | Redis-backed Celery delivery tasks | Reuse notification services rather than HTTP handlers. |
-| `backend/app/templates/` | Jinja2 PDF layouts | Do not introduce external resource fetching. |
-| `backend/alembic/versions/` | Incremental database migrations | Preserve applied revisions and metadata comments. |
-| `backend/scripts/verify_comments.py` | PostgreSQL table/column comment verification | This checks database metadata, not Python comments. |
-| `backend/tests/` | API, persistence, concurrency, report, and mail tests | Use migrated/seeded disposable PostgreSQL. |
-| `frontend/src/App.tsx`, `main.tsx` | Providers, routing, mounting | Feature-specific UI belongs under features. |
-| `frontend/src/features/academic/` | Shared academic API contracts/hooks and management UI | Keep HTTP session logic in the shared client. |
-| `frontend/src/features/grades/` | Grade draft state, grid, release orchestration, navigation guard | Preserve pending edits across class tabs. |
-| Other `frontend/src/features/` folders | Auth, courses, classes, students, components, dashboard, analytics, reports, notifications | Keep feature-owned logic near its screens. |
-| `frontend/src/components/` | Layout, navigation, route guards, shared components | Business workflows remain in feature folders. |
-| `frontend/src/components/ui/` | shadcn/Base UI primitives | Keep domain behavior out of primitives. |
-| `frontend/src/lib/` | Shared Axios client and styling utilities | Use this client to preserve bearer/refresh behavior. |
-| `frontend/src/stores/` | Zustand session persistence/hydration | Server query data uses TanStack Query. |
-| `frontend/src/test/` | Vitest shared DOM setup | Tests otherwise live alongside frontend features. |
-| `frontend/public/`, `frontend/src/assets/` | Public and imported static assets | Production bundles are generated into ignored `dist/`. |
-| `nginx/`, frontend Nginx config | Edge API proxy and static SPA fallback | TLS termination lives outside the repository proxy. |
-| `docker-compose.yml`, Dockerfiles | Local/deployment topology and images | Use profile-specific files, ports, and project names. |
-| `.env*.example` | Configuration templates | Do not commit actual secrets or environment files. |
-| `docs/superpowers/specs/` | Archived design specification | Check proposed behavior against current source. |
-| `docs/superpowers/plans/` | Archived implementation plans/progress | Historical commands may differ from current guides. |
+| `backend/app/main.py` | Merangkai FastAPI, middleware, lifespan, dan router | Aturan penilaian dan persistence berada pada lapisan di bawahnya. |
+| `backend/app/config.py` | Settings Pydantic dengan cache | Pusatkan pembacaan environment agar default tidak tersebar. |
+| `backend/app/database.py` | Async engine, session factory, dan request dependency | Session request tidak melakukan commit otomatis. |
+| `backend/app/dependencies.py` | Identitas JWT, akun aktif, dan dependency role | Service memeriksa kepemilikan resource. |
+| `backend/app/routers/` | Adapter HTTP dan status code | Delegasikan aturan bisnis serta query. |
+| `backend/app/schemas/` | Kontrak request/response dan constraint field | Validasi lintas-record/database berada pada service. |
+| `backend/app/services/` | Aturan akses, perhitungan nilai, rilis, laporan, dan transport email | Periksa perilaku commit repository saat menyusun transaksi. |
+| `backend/app/repositories/` | Query dan persistence SQLAlchemy | Hindari duplikasi aturan bisnis antar-repository. |
+| `backend/app/models/` | Tabel, foreign key, constraint, dan komentar metadata Indonesia | Perubahan schema memerlukan migration Alembic. |
+| `backend/app/seeding/` | Generator graph opsional, katalog sample, transaksi dataset append-only, CLI, dan artefak manifest | Pertahankan dataset manual; gunakan nama baru untuk initial state yang segar. |
+| `backend/app/tasks/` dan `celery_app.py` | Task pengiriman Celery melalui Redis | Gunakan service notifikasi, bukan HTTP handler. |
+| `backend/app/templates/` | Layout PDF Jinja2 | Pertahankan larangan pengambilan resource eksternal. |
+| `backend/alembic/versions/` | Migration database bertahap | Pertahankan revision yang sudah diterapkan beserta komentar metadata. |
+| `backend/scripts/verify_comments.py` | Pemeriksaan komentar tabel/kolom PostgreSQL | Memeriksa metadata database, bukan komentar Python. |
+| `backend/tests/` | Test API, persistence, concurrency, seed, laporan, dan email | Gunakan PostgreSQL disposable yang dimigrasi/di-seed dengan target `TEST_*` eksplisit. |
+| `backend/tests/support/` | Guard target awal dan fixture dataset API hasil generator | Konfigurasikan target test sebelum import runtime aplikasi. |
+| `frontend/src/App.tsx`, `main.tsx` | Provider, routing, dan mounting | UI khusus fitur berada dalam folder features. |
+| `frontend/src/features/academic/` | Kontrak/hook API akademik serta UI pengelolaan bersama | Logic sesi HTTP tetap dalam client bersama. |
+| `frontend/src/features/grades/` | State draft nilai, grid, koordinasi rilis, dan navigation guard | Pertahankan edit yang tertunda saat berpindah tab kelas. |
+| `frontend/src/features/users/` | Daftar, ringkasan, dialog create/edit/deactivation, dan kontrak akun | Password tidak menjadi field respons publik atau record yang dirender. |
+| Folder lain `frontend/src/features/` | Auth, courses, classes, students, components, dashboard, analytics, reports, notifications | Dekatkan logic fitur dengan halamannya. |
+| `frontend/src/components/` | Layout, navigasi, route guard, dan komponen bersama | Alur bisnis tetap berada pada folder fitur. |
+| `frontend/src/components/data-table/` | Sorting, pagination, toolbar, dan empty state TanStack Table bersama | Halaman fitur memiliki request API dan filter server. |
+| `frontend/src/components/ui/` | Primitive shadcn/Base UI | Hindari perilaku domain pada primitive. |
+| `frontend/src/lib/` | Client Axios bersama, helper navigasi, dan utilitas styling | Gunakan client ini agar bearer/refresh konsisten. |
+| `frontend/src/stores/` | Persistence/hydration sesi Zustand | Data query server memakai TanStack Query. |
+| `frontend/src/test/` | Setup DOM Vitest bersama | Test fitur lainnya berada di samping fitur terkait. |
+| `frontend/public/`, `frontend/src/assets/` | Aset statis publik dan aset import | Bundle production dihasilkan pada `dist/` yang diabaikan Git. |
+| `nginx/`, konfigurasi Nginx frontend | Edge API proxy dan fallback SPA statis | Terminasi TLS berada di luar proxy repository. |
+| `docker-compose.yml`, Dockerfile | Topologi dan image local/deployment | Gunakan file, port, dan project name sesuai profile. |
+| `backend/.artifacts/seeding/` (diabaikan Git, hasil generator) | Manifest CLI saat dijalankan dari `backend/` atau container backend lokal | Pertahankan artefak dataset; jangan simpan password atau token. |
+| `.env*.example` | Template konfigurasi | Jangan commit secret atau file environment aktual. |
+| `docs/superpowers/specs/` | Arsip specification desain | Cocokkan perilaku usulan dengan source saat ini. |
+| `docs/superpowers/plans/` | Arsip plan/progres implementasi | Command historis dapat berbeda dari panduan aktif. |
 
-## Where to start
+## Titik awal penelusuran
 
-For a request flow, trace router to schema/service, then repository/model. For grade consistency, start with `services/grade.py`, `services/scores.py`, and `services/component_rules.py`. For editor state, start with `features/grades/draft.ts` and `hooks.ts`. For operations, start with [installation](installation.md), [testing](testing.md), and [deployment](deployment.md).
+Untuk alur request, telusuri router ke schema/service, lalu repository/model. Untuk konsistensi nilai, mulai dari `services/grade.py`, `services/scores.py`, serta `services/component_rules.py`. Untuk state editor, mulai dari `features/grades/draft.ts` dan `hooks.ts`. Untuk operasi, gunakan [instalasi](installation.md), [pengujian](testing.md), dan [deployment](deployment.md).

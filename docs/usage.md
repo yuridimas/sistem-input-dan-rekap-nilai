@@ -1,91 +1,110 @@
-# Usage
+# Panduan penggunaan
 
-Assume the application is running; see [installation](installation.md). Interface labels are Indonesian. [API examples](api.md) cover programmatic use.
+Panduan ini mengasumsikan aplikasi sudah berjalan; lihat [instalasi](installation.md). Label antarmuka memakai bahasa Indonesia. [Contoh API](api.md) menjelaskan penggunaan melalui program.
 
-## Sign in and prepare accounts
+## Login dan persiapan akun
 
-1. Open <http://localhost:15173> for local Docker.
-2. Sign in with the configured bootstrap email/password.
-3. Create lecturer accounts through `POST /admin/users` as superadmin. The `/users` page is currently a placeholder; account CRUD, password changes, and deactivation are available through the API.
+1. Buka <http://localhost:15173> untuk Docker lokal.
+2. Login menggunakan email/password bootstrap yang dikonfigurasi.
+3. Sebagai superadmin, buka **Pengguna** (`/users`) untuk membuat akun dosen atau memeriksa akun existing. Operasi akun yang sama tersedia melalui `/admin/users` pada [referensi API](api.md).
 
-The dashboard summarizes visible courses/classes, pending releases, and recent releases. Lecturers see assigned classes; superadmins see all. Students are profiles/recipients, not an application login role.
+Dashboard merangkum mata kuliah/kelas yang dapat diakses, rilis tertunda, dan rilis terbaru. Dosen melihat kelas yang ditugaskan kepadanya; superadmin melihat seluruh kelas. Mahasiswa merupakan profil/penerima, bukan role login aplikasi.
 
-## Set up courses and classes
+## Mengelola pengguna
 
-1. Open **Mata kuliah** (`/courses`) and create a course: code, name, credits, semester.
-2. Open the course and create a class: section and academic year.
-3. As superadmin, assign an active lecturer. As lecturer, the class is assigned to yourself.
-4. Open `/classes/:classId` and its tabs: **Mahasiswa**, **Komponen Penilaian**, **Nilai**, **Analisis**.
+Hanya superadmin yang dapat membuka **Pengguna**. Tabel menampilkan nama, email, role, status aktif, tanggal dibuat, serta tindakan per baris. Pencarian lokal mencocokkan nama/email tanpa membedakan huruf besar/kecil. Pilih role/status lalu klik **Terapkan** untuk menggunakan filter server; **Reset** mengembalikan semua role/status. Kartu ringkasan menghitung daftar hasil filter server sebelum pencarian lokal.
 
-Lecturers can list/read courses they created or teach through an assigned class. Updating/deleting course metadata requires its creator or superadmin. Class management is limited to the assigned lecturer or superadmin.
+Gunakan **Tambah pengguna** untuk memasukkan nama, email, password, dan role. Tindakan edit memperbarui profil, role, status aktif, atau password; kosongkan password opsional agar password lama tetap digunakan. **Nonaktifkan** meminta konfirmasi dan menonaktifkan akun aktif sambil mempertahankan record serta history. Password/hash existing tidak ditampilkan. Akun nonaktif tidak dapat login atau melanjutkan operasi API terproteksi.
 
-## Build the roster
+Tabel daftar mendukung kolom yang dapat diurutkan serta pagination lokal 10/25/50 row per halaman. Pagination mengubah bagian data hasil fetch yang terlihat, tanpa meminta halaman baru ke backend. Identitas sesi dan **Keluar** berada di bagian bawah sidebar.
 
-On **Mahasiswa**, enroll by NIM with name and optional email. Existing NIM reuses the student profile. Supply a name for new students; the API otherwise falls back to the NIM. Duplicate enrollment returns a conflict.
+## Menyiapkan mata kuliah dan kelas
 
-The global `/students` directory supports creation/reading for both roles; update/delete requires superadmin. Enrolled profiles cannot be deleted, and removing an enrollment with dependent grading data can also be blocked.
+1. Buka **Semua Mata Kuliah** sebagai superadmin atau **Mata Kuliah Saya** sebagai dosen (`/courses`). Cari kode/nama atau buat mata kuliah dengan kode, nama, SKS, dan semester.
+2. Buka tindakan lihat mata kuliah untuk memeriksa kelasnya. Cari section/tahun, lihat status penguncian roster, atau buat kelas dengan section dan tahun akademik.
+3. Sebagai superadmin, pilih dosen aktif. Sebagai dosen, kelas ditugaskan ke akun sendiri.
+4. Buka `/classes/:classId` dan tab **Mahasiswa**, **Komponen Penilaian**, **Nilai**, serta **Analisis**.
 
-Email is optional for academic entry, but missing/invalid recipients prevent successful delivery. After an admin corrects the profile email, retry an unsent notification to refresh its recipient.
+Dosen dapat melihat mata kuliah yang dibuatnya atau yang diajarnya melalui kelas. Perubahan/penghapusan metadata mata kuliah memerlukan pembuatnya atau superadmin. Pengelolaan kelas dibatasi pada dosen pengampu atau superadmin.
 
-## Configure assessment components
+Breadcrumb menghubungkan kelas dengan mata kuliah dan indeks mata kuliah. Dashboard menampilkan maksimal lima entri mata kuliah; **Lihat semua** membuka indeks jika jumlahnya lebih banyak. Tindakan pada rilis terbaru memfokuskan baris course/class terkait di dashboard.
 
-On **Komponen Penilaian**, enter names, categories, weights, maximum scores, and display order, then save the configuration.
+## Mengisi roster
 
-| Example | Category | Weight | Maximum |
+Pada **Mahasiswa**, daftarkan NIM dengan nama dan email opsional. NIM existing memakai profil mahasiswa yang tersimpan. Isi nama untuk mahasiswa baru; API memakai NIM sebagai fallback jika nama tidak diberikan. Enrollment duplikat menghasilkan konflik.
+
+Direktori global `/students` mendukung pembuatan/pembacaan bagi kedua role; update/delete memerlukan superadmin. Profil yang masih terdaftar pada kelas tidak dapat dihapus. Penghapusan enrollment juga dapat ditolak jika sudah memiliki dependensi penilaian.
+
+Pencarian direktori mencocokkan nama/NIM, sedangkan roster kelas mencocokkan nama/NIM/email. Link mahasiswa membuka history nilai yang telah dirilis. Roster terkunci menonaktifkan penambahan dan menyembunyikan penghapusan; menghapus enrollment berbeda dari menghapus profil mahasiswa global.
+
+Email opsional untuk input akademik, tetapi penerima kosong/tidak valid menghalangi keberhasilan pengiriman. Setelah admin memperbaiki email profil, retry notifikasi yang belum terkirim untuk memperbarui penerimanya.
+
+## Mengatur komponen penilaian
+
+Pada **Komponen Penilaian**, isi nama, kategori, bobot, skor maksimum, serta urutan tampilan, lalu simpan konfigurasi.
+
+| Contoh | Kategori | Bobot | Maksimum |
 | --- | --- | --- | --- |
-| Assignments | `tugas` | 20 | 100 |
-| Midterm | `uts` | 30 | 100 |
-| Final exam | `uas` | 50 | 100 |
+| Tugas | `tugas` | 20 | 100 |
+| Ujian tengah semester | `uts` | 30 | 100 |
+| Ujian akhir semester | `uas` | 50 | 100 |
 
-Weights must total exactly 100% with at least one UTS/UAS. Weights/maxima are positive with at most two decimals. A component containing scores cannot be removed or reduced below a saved score. Valid configuration changes recalculate draft totals.
+Bobot harus tepat 100% dan memiliki minimal satu UTS serta satu UAS. Bobot/maksimum positif dengan maksimal dua desimal. Komponen yang memiliki skor tidak dapat dihapus atau diturunkan maksimumnya di bawah skor tersimpan. Perubahan konfigurasi yang valid menghitung ulang total draft.
 
-## Enter and save grades
+## Mengisi dan menyimpan nilai
 
-1. Open **Nilai** and enter each student's component scores.
-2. Observe save state and resolve validation/network errors before leaving.
-3. Use save/retry controls if a request fails. Draft edits survive class-tab changes; navigation guards handle unfinished work.
-4. Check totals and fill every missing component before release.
+1. Buka **Nilai** dan isi skor setiap komponen mahasiswa.
+2. Perhatikan status save dan selesaikan error validasi/koneksi sebelum meninggalkan halaman.
+3. Gunakan kontrol save/retry jika request gagal. Edit draft bertahan saat berpindah tab kelas; navigation guard menangani pekerjaan yang belum selesai.
+4. Periksa total dan lengkapi setiap komponen kosong sebelum rilis.
 
-Totals use `sum(score / maximum * weight)`, half-up to two decimals. In the example configuration, scores 80, 75, 90 produce `83.50`. Missing draft scores contribute zero without redistributing weights. Blank differs from saved zero: blank blocks release, zero is complete. API `null` clears a score; an omitted component preserves it.
+Total menggunakan `sum(score / maximum * weight)`, dibulatkan half-up ke dua desimal. Pada contoh konfigurasi, skor 80, 75, 90 menghasilkan `83.50`. Skor draft yang belum ada berkontribusi nol tanpa pembagian ulang bobot. Sel kosong menghalangi rilis, sedangkan nol tersimpan berarti lengkap. API `null` menghapus skor; ID komponen yang dihilangkan dari payload mempertahankan nilainya.
 
-Pending edits are in memory. Wait for successful saves before reload/exit. If changed server configuration pauses the editor, reconcile using its reload controls; explicit reload discards local drafts.
+Edit tertunda disimpan dalam memori. Tunggu save berhasil sebelum reload/keluar. Jika perubahan konfigurasi server menjeda editor, gunakan kontrol reload untuk rekonsiliasi; reload eksplisit membuang draft lokal.
 
-## Finalize a class
+## Memfinalisasi kelas
 
-1. Confirm roster and components.
-2. Save every score, including explicit zeroes where appropriate.
-3. Start finalization; the UI flushes saves and refreshes the snapshot before confirmation.
-4. Review confirmation and release.
-5. Inspect released results and queue counts.
+1. Periksa roster dan komponen.
+2. Simpan seluruh skor, termasuk nol eksplisit jika sesuai.
+3. Mulai finalisasi; UI menyelesaikan save dan memperbarui snapshot sebelum konfirmasi.
+4. Tinjau konfirmasi lalu rilis.
+5. Periksa hasil rilis dan jumlah task antrean.
 
-Release requires a nonempty roster, valid configuration, and complete in-range scores. It blocks score edits and roster/component changes. The current application has no unfinalize flow.
+Rilis memerlukan roster berisi mahasiswa, konfigurasi valid, dan skor lengkap dalam rentang. Rilis mengunci edit skor serta perubahan roster/komponen. Aplikasi saat ini tidak menyediakan alur unfinalize.
 
-Release counts indicate finalized students and accepted queue tasks, not email delivery. Broker failure may leave released grades with failed notifications. After an uncertain timeout, use the server-status check before retrying; a repeated release returns conflict.
+Jumlah rilis menunjukkan mahasiswa final dan task yang diterima antrean, bukan email yang diterima. Kegagalan broker dapat meninggalkan nilai final dengan notifikasi gagal. Setelah timeout yang hasilnya tidak pasti, periksa status server sebelum retry; rilis ulang menghasilkan konflik.
 
-## Analytics and reports
+## Analisis dan laporan
 
-Use **Analisis** for class charts/rankings. Rankings are stored on release; ties are ordered by NIM/name with distinct positions.
+Gunakan **Analisis** untuk chart/ranking kelas. Ranking disimpan saat rilis; skor seri diurutkan menurut NIM/nama dengan posisi berbeda.
 
-Open `/students/:studentId` for released history/trends in your access scope. Drafts do not appear in released history. Individual PDF downloads identify an enrollment, not a global student profile.
+Buka `/students/:studentId` untuk history/trend rilis sesuai cakupan akses. Draft tidak muncul di history rilis. Download PDF individu memakai ID enrollment, bukan ID profil mahasiswa global.
 
-Released classes offer PDF/XLSX controls. Individual PDFs require a final enrollment grade; class exports require all roster grades final. XLSX includes component scores, totals, ranks, and pass/fail labels with a threshold of 45. Set `INSTITUTION_NAME` for report branding.
+Kelas yang dirilis menyediakan kontrol PDF/XLSX. PDF individu memerlukan nilai enrollment final; ekspor kelas memerlukan seluruh nilai roster final. XLSX berisi skor komponen, total, ranking, serta label lulus/tidak lulus dengan ambang 45. Isi `INSTITUTION_NAME` untuk identitas laporan.
 
-## Notifications
+## Notifikasi
 
-As superadmin, open **Notifikasi** (`/notifications`). Filter `queued`, `sent`, or `failed`, inspect errors, and retry unsent records after fixing recipient/broker/worker/SMTP. Sent records reject retry.
+Sebagai superadmin, gunakan ikon bell pada header untuk membuka **Notifikasi** (`/notifications`). Pilih `queued`, `sent`, atau `failed`, lalu klik **Terapkan**; **Reset** mengembalikan filter notifikasi gagal. Cari penerima/status/error secara lokal. Tindakan retry muncul pada baris gagal; perbaiki penerima/broker/worker/SMTP sebelum mencoba lagi. API juga mendukung retry status lain yang belum terkirim, sedangkan record `sent` menolak retry.
 
-Empty `SMTP_HOST` means mock transport: logging can result in `sent` without contacting SMTP. Real mail requires configured SMTP and a worker sharing the API's database/Redis.
+`SMTP_HOST` kosong berarti mock transport: logging dapat menghasilkan `sent` tanpa menghubungi SMTP. Email nyata memerlukan konfigurasi SMTP dan worker dengan database/Redis yang sama seperti API.
 
-## Common problems
+## Menelusuri kasus dari seeder
 
-| Symptom | Action |
+Gunakan [panduan seeding](seeding.md) untuk mata kuliah/kelas berisi data dan beberapa sample per kasus positif/negatif. Manifest menyediakan email aktor, path/payload, expected status, serta ID target course/class/student/enrollment. Ketiga aktor memakai password yang diberikan saat dataset dibuat; dua aktor merupakan dosen, termasuk dosen pembanding untuk pemeriksaan penolakan akses. Superadmin dapat melihat akun pada **Pengguna**.
+
+Sample profile `manual` memakai target mahasiswa berbeda dalam kelas setiap kasus; setiap sample finalisasi sukses memiliki kelas sendiri. Aksi tulis mengubah prasyarat sehingga skenario awal yang segar memerlukan nama dataset baru. Apply ulang mempertahankan edit human. Profile `light-load` menyediakan data dan target berbatas untuk request berulang; penjadwalan load/concurrency ditentukan pemanggil.
+
+## Masalah umum
+
+| Gejala | Tindakan |
 | --- | --- |
-| Changing seed password does not change login | Seed does not reset accounts; use the authorized account update API. |
-| Configuration/save rejected | Check 100% weight, UTS/UAS, positive maxima, and score ranges. |
-| Missing cells block release | Fill listed cells; blank is not zero. |
-| Write returns 409 | Reload; data may be final, duplicate, or protected by dependencies. |
-| Release result uncertain | Check server status before retry. |
-| Report returns 409 | Confirm the enrollment/full roster is final. |
-| PDF returns 503 | Use the backend image with renderer libraries/fonts. |
-| Email queued/failed | Check worker, broker, recipient, SMTP, then admin retry. |
-| Wrong browser API URL | Correct `VITE_API_URL`, restart/rebuild, and check CORS. |
+| Password seed berubah tetapi login tetap sama | Seed tidak mereset akun; gunakan API update akun dengan otorisasi yang sesuai. |
+| Konfigurasi/save ditolak | Periksa total bobot 100%, UTS/UAS, maksimum positif, dan rentang skor. |
+| Sel kosong menghalangi rilis | Isi sel yang disebutkan; kosong berbeda dari nol. |
+| Operasi tulis menghasilkan 409 | Reload; data mungkin sudah final, duplikat, atau dilindungi dependensi. |
+| Hasil rilis tidak pasti | Periksa status server sebelum retry. |
+| Laporan menghasilkan 409 | Pastikan nilai enrollment/seluruh roster final. |
+| PDF menghasilkan 503 | Gunakan image backend yang memiliki library/font renderer. |
+| Email masih queued/failed | Periksa worker, broker, penerima, SMTP, lalu retry sebagai admin. |
+| URL API browser salah | Perbaiki `VITE_API_URL`, restart/rebuild, dan periksa CORS. |
+| Nama/fingerprint seed konflik | Gunakan nama dataset baru untuk konfigurasi seed/profile/generator yang berubah. |
